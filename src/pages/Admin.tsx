@@ -668,16 +668,17 @@ const Admin = () => {
             </div>
           </TabsContent>
 
-          {/* ===== APPEARANCE TAB ===== */}
           <TabsContent value="appearance">
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+            <div className="space-y-6">
+              {/* Colors */}
               <div className="rounded-lg border border-border bg-card p-5">
                 <h3 className="text-lg font-bold text-primary mb-4 flex items-center gap-2" style={{ fontFamily: 'Playfair Display, serif' }}>
-                  <Palette className="h-5 w-5" /> Cores
+                  <Palette className="h-5 w-5" /> Cores do Site
                 </h3>
-                <div className="space-y-4">
+                <p className="text-sm text-muted-foreground mb-4">As cores serão aplicadas em todo o site (landing, agendamento, painel).</p>
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                   <div>
-                    <label className="text-sm font-medium mb-1 block">Cor Principal</label>
+                    <label className="text-sm font-medium mb-1 block">Cor Principal (botões, destaques)</label>
                     <div className="flex items-center gap-3">
                       <input
                         type="color"
@@ -687,7 +688,6 @@ const Admin = () => {
                       />
                       <span className="text-sm text-muted-foreground">{settingsLocal.primary_color || "#166434"}</span>
                     </div>
-                    <p className="text-xs text-muted-foreground mt-1">Botões, destaques e acentos.</p>
                   </div>
                   <div>
                     <label className="text-sm font-medium mb-1 block">Cor de Fundo</label>
@@ -700,12 +700,86 @@ const Admin = () => {
                       />
                       <span className="text-sm text-muted-foreground">{settingsLocal.bg_color || "#000000"}</span>
                     </div>
-                    <p className="text-xs text-muted-foreground mt-1">Fundo geral do site.</p>
                   </div>
                 </div>
-                <Button className="mt-4 w-full" onClick={() => { saveSetting("primary_color"); saveSetting("bg_color"); }}>Salvar Aparência</Button>
+                <Button className="mt-4" onClick={() => { saveSetting("primary_color"); saveSetting("bg_color"); }}>Salvar Cores</Button>
               </div>
 
+              {/* Background Image */}
+              <div className="rounded-lg border border-border bg-card p-5">
+                <h3 className="text-lg font-bold text-primary mb-4" style={{ fontFamily: 'Playfair Display, serif' }}>
+                  🖼️ Imagem de Fundo
+                </h3>
+                <p className="text-sm text-muted-foreground mb-4">Imagem exibida na página inicial do site.</p>
+                {settingsLocal.background_url && (
+                  <div className="mb-4 rounded-lg overflow-hidden border border-border">
+                    <img src={settingsLocal.background_url} alt="Fundo atual" className="w-full h-40 object-cover" />
+                  </div>
+                )}
+                <input
+                  type="file"
+                  accept="image/*"
+                  onChange={async (e) => {
+                    const file = e.target.files?.[0];
+                    if (!file) return;
+                    const formData = new FormData();
+                    formData.append("file", file);
+                    formData.append("type", "background");
+                    try {
+                      const res = await supabase.functions.invoke("upload-asset", { body: formData });
+                      if (res.data?.url) {
+                        setSettingsLocal(prev => ({ ...prev, background_url: res.data.url }));
+                        refetchSettings();
+                        toast.success("Imagem de fundo atualizada!");
+                      } else {
+                        throw new Error(res.data?.error || "Erro ao enviar");
+                      }
+                    } catch (err: any) {
+                      toast.error(err.message || "Erro ao enviar imagem.");
+                    }
+                  }}
+                  className="text-sm file:mr-3 file:rounded file:border-0 file:bg-primary file:px-3 file:py-1.5 file:text-primary-foreground file:font-medium file:cursor-pointer"
+                />
+              </div>
+
+              {/* Logo */}
+              <div className="rounded-lg border border-border bg-card p-5">
+                <h3 className="text-lg font-bold text-primary mb-4" style={{ fontFamily: 'Playfair Display, serif' }}>
+                  ✂️ Logo
+                </h3>
+                <p className="text-sm text-muted-foreground mb-4">Logo exibida no site.</p>
+                {settingsLocal.logo_url && (
+                  <div className="mb-4">
+                    <img src={settingsLocal.logo_url} alt="Logo atual" className="h-24 object-contain rounded" />
+                  </div>
+                )}
+                <input
+                  type="file"
+                  accept="image/*"
+                  onChange={async (e) => {
+                    const file = e.target.files?.[0];
+                    if (!file) return;
+                    const formData = new FormData();
+                    formData.append("file", file);
+                    formData.append("type", "logo");
+                    try {
+                      const res = await supabase.functions.invoke("upload-asset", { body: formData });
+                      if (res.data?.url) {
+                        setSettingsLocal(prev => ({ ...prev, logo_url: res.data.url }));
+                        refetchSettings();
+                        toast.success("Logo atualizada!");
+                      } else {
+                        throw new Error(res.data?.error || "Erro ao enviar");
+                      }
+                    } catch (err: any) {
+                      toast.error(err.message || "Erro ao enviar logo.");
+                    }
+                  }}
+                  className="text-sm file:mr-3 file:rounded file:border-0 file:bg-primary file:px-3 file:py-1.5 file:text-primary-foreground file:font-medium file:cursor-pointer"
+                />
+              </div>
+
+              {/* Typography */}
               <div className="rounded-lg border border-border bg-card p-5">
                 <h3 className="text-lg font-bold text-primary mb-4" style={{ fontFamily: 'Playfair Display, serif' }}>
                   T Tipografia
