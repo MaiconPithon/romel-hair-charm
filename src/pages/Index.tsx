@@ -5,7 +5,7 @@ import { useBusinessSettings } from "@/hooks/useBusinessSettings";
 import { useAvaliacoes } from "@/hooks/useAvaliacoes";
 import { StarRating } from "@/components/StarRating";
 import { WhatsAppButton } from "@/components/WhatsAppButton";
-import { Scissors, MapPin, Clock, Phone } from "lucide-react";
+import { Scissors, Star } from "lucide-react";
 import romelBg from "@/assets/romel-bg.jpg";
 import { useEffect } from "react";
 
@@ -46,41 +46,15 @@ const Index = () => {
 
       {/* Hero */}
       <section className="relative z-10 flex min-h-screen flex-col items-center justify-center px-4 text-center">
-        <div className="flex flex-col items-center gap-6 mt-32">
-          {avaliacoes && avaliacoes.length > 0 && (
-            <div className="flex items-center gap-2">
-              <StarRating rating={Math.round(avgRating)} />
-              <span className="text-sm text-muted-foreground">
-                ({avaliacoes.length})
-              </span>
-            </div>
-          )}
-          <Link to="/agendar">
-            <Button size="lg" className="mt-2 rounded-full px-10 text-lg font-bold bg-green-600 hover:bg-green-700 text-white gap-2">
-              <Scissors className="h-5 w-5" /> AGENDAR HORÁRIO
-            </Button>
-          </Link>
-        </div>
+        <div className="flex-1" />
 
-        {/* Info bar */}
-        <div className="absolute bottom-24 left-0 right-0 flex flex-wrap items-center justify-center gap-8 px-4 text-sm text-muted-foreground">
-          <div className="flex items-center gap-2">
-            <Clock className="h-4 w-4 text-green-500" />
-            <span>Ter–Sáb · 08h às 21h</span>
-          </div>
-          {settings?.whatsapp && (
-            <div className="flex items-center gap-2">
-              <Phone className="h-4 w-4 text-green-500" />
-              <span>(71) 98889-6715</span>
-            </div>
-          )}
-          {address && (
-            <div className="flex items-center gap-2">
-              <MapPin className="h-4 w-4 text-green-500" />
-              <span>{address}</span>
-            </div>
-          )}
-        </div>
+        <Link to="/agendar">
+          <Button size="lg" className="rounded-full px-10 text-lg font-bold bg-green-600 hover:bg-green-700 text-white gap-2">
+            <Scissors className="h-5 w-5" /> AGENDAR HORÁRIO
+          </Button>
+        </Link>
+
+        <div className="flex-1" />
 
         {/* Footer */}
         <div className="absolute bottom-4 flex flex-col items-center gap-1 text-xs text-muted-foreground/50">
@@ -90,6 +64,15 @@ const Index = () => {
           <span className="mt-1">Desenvolvido por Michael Pithon</span>
         </div>
       </section>
+
+      {/* Star rating above WhatsApp */}
+      {avaliacoes && avaliacoes.length > 0 && (
+        <div className="fixed bottom-24 right-6 z-50 flex items-center gap-1 rounded-full bg-black/60 px-3 py-1.5 backdrop-blur-sm">
+          <Star className="h-4 w-4 fill-yellow-500 text-yellow-500" />
+          <span className="text-sm font-bold text-white">{Math.round(avgRating)}</span>
+          <span className="text-xs text-muted-foreground">({avaliacoes.length})</span>
+        </div>
+      )}
 
       <WhatsAppButton />
     </div>

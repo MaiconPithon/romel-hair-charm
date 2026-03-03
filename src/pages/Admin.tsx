@@ -230,6 +230,10 @@ const Admin = () => {
   const [qsCustomPrice, setQsCustomPrice] = useState("");
   const [qsCustomServices, setQsCustomServices] = useState<{name: string; price: number}[]>([]);
   const [qsPaymentStatus, setQsPaymentStatus] = useState("pago");
+  const [qsDate, setQsDate] = useState(format(new Date(), "yyyy-MM-dd"));
+  const [qsHour, setQsHour] = useState(format(new Date(), "HH"));
+  const [qsMinute, setQsMinute] = useState("00");
+  const [qsSearch, setQsSearch] = useState("");
 
   const qsTotalPrice = (() => {
     const catalog = services?.filter(s => qsServiceIds.includes(s.id)).reduce((sum, s) => sum + Number(s.price), 0) || 0;
@@ -246,9 +250,9 @@ const Admin = () => {
       client_phone: "N/A",
       service_ids: qsServiceIds,
       service_names: allNames,
-      appointment_date: format(new Date(), "yyyy-MM-dd"),
-      appointment_time: format(new Date(), "HH:mm:ss"),
-      status: "finalizado",
+      appointment_date: qsDate,
+      appointment_time: `${qsHour}:${qsMinute}:00`,
+      status: qsPaymentStatus === "pago" ? "finalizado" : "pendente",
       payment_method: "dinheiro",
       total_price: qsTotalPrice,
       total_duration: totalDuration,
@@ -448,15 +452,65 @@ const Admin = () => {
           {/* ===== QUICK SALE TAB ===== */}
           <TabsContent value="quicksale">
             <div className="max-w-2xl mx-auto space-y-6">
+              {/* Nome do Cliente */}
               <div className="rounded-lg border border-border bg-card p-5">
-                <label className="text-sm font-medium mb-2 block">Nome do Cliente</label>
+                <label className="text-sm font-medium text-yellow-500 mb-2 block">Nome do Cliente</label>
                 <Input value={qsName} onChange={(e) => setQsName(e.target.value)} placeholder="Ex: João Silva" className="bg-background" />
               </div>
 
+              {/* Data e Hora + Status */}
               <div className="rounded-lg border border-border bg-card p-5 space-y-3">
-                <label className="text-sm font-medium">Buscar Serviço do Catálogo</label>
+                <label className="text-sm font-medium text-red-500 mb-2 block">Data e Hora do Atendimento</label>
+                <div className="flex flex-wrap items-center gap-3">
+                  <div className="flex items-center gap-2">
+                    <CalendarIcon className="h-4 w-4 text-muted-foreground" />
+                    <Input
+                      type="date"
+                      value={qsDate}
+                      onChange={(e) => setQsDate(e.target.value)}
+                      className="bg-background w-auto"
+                    />
+                  </div>
+                  <div className="flex items-center gap-2">
+                    <Clock className="h-4 w-4 text-muted-foreground" />
+                    <select value={qsHour} onChange={(e) => setQsHour(e.target.value)} className="rounded border border-border bg-background px-2 py-2 text-sm">
+                      {Array.from({ length: 24 }, (_, i) => String(i).padStart(2, "0")).map(h => <option key={h} value={h}>{h}</option>)}
+                    </select>
+                    <span>:</span>
+                    <select value={qsMinute} onChange={(e) => setQsMinute(e.target.value)} className="rounded border border-border bg-background px-2 py-2 text-sm">
+                      {["00", "15", "30", "45"].map(m => <option key={m} value={m}>{m}</option>)}
+                    </select>
+                  </div>
+                </div>
+                <div className="mt-2">
+                  <label className="text-sm font-medium mb-1 block">Status do Pagamento</label>
+                  <Select value={qsPaymentStatus} onValueChange={setQsPaymentStatus}>
+                    <SelectTrigger className="w-40 bg-background">
+                      <SelectValue />
+                    </SelectTrigger>
+                    <SelectContent className="dark">
+                      <SelectItem value="pago">✅ Pago</SelectItem>
+                      <SelectItem value="pendente">⏳ Pendente</SelectItem>
+                      <SelectItem value="fiado">📝 Fiado</SelectItem>
+                    </SelectContent>
+                  </Select>
+                </div>
+              </div>
+
+              {/* Buscar Serviço */}
+              <div className="rounded-lg border border-border bg-card p-5 space-y-3">
+                <label className="text-sm font-medium text-red-500">Buscar Serviço do Catálogo</label>
+                <div className="relative">
+                  <Input
+                    value={qsSearch}
+                    onChange={(e) => setQsSearch(e.target.value)}
+                    placeholder="Buscar serviço..."
+                    className="bg-background pl-8"
+                  />
+                  <Filter className="absolute left-2.5 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
+                </div>
                 <div className="space-y-2 max-h-48 overflow-y-auto">
-                  {services?.filter(s => s.active).map(s => (
+                  {services?.filter(s => s.active && s.name.toLowerCase().includes(qsSearch.toLowerCase())).map(s => (
                     <label key={s.id} className="flex items-center gap-2 cursor-pointer">
                       <Checkbox
                         checked={qsServiceIds.includes(s.id)}
@@ -488,8 +542,28 @@ const Admin = () => {
                 </div>
               </div>
 
+              {/* Carrinho */}
               <div className="rounded-lg border border-border bg-card p-5">
-                <div className="flex items-center justify-between text-lg font-bold">
+                <h4 className="text-sm font-medium flex items-center gap-2 mb-3">🛒 Carrinho de Serviços</h4>
+                {qsServiceIds.length === 0 && qsCustomServices.length === 0 ? (
+                  <p className="text-center text-muted-foreground text-sm py-4">Nenhum serviço adicionado.</p>
+                ) : (
+                  <div className="space-y-2">
+                    {services?.filter(s => qsServiceIds.includes(s.id)).map(s => (
+                      <div key={s.id} className="flex items-center justify-between text-sm">
+                        <span>{s.name}</span>
+                        <span className="text-green-500">R$ {Number(s.price).toFixed(2)}</span>
+                      </div>
+                    ))}
+                    {qsCustomServices.map((s, i) => (
+                      <div key={`c${i}`} className="flex items-center justify-between text-sm">
+                        <span>{s.name}</span>
+                        <span className="text-green-500">R$ {s.price.toFixed(2)}</span>
+                      </div>
+                    ))}
+                  </div>
+                )}
+                <div className="border-t border-border mt-4 pt-4 flex items-center justify-between text-lg font-bold">
                   <span>Total a Pagar</span>
                   <span className="text-green-500">R$ {qsTotalPrice.toFixed(2)}</span>
                 </div>
@@ -726,13 +800,19 @@ const Admin = () => {
                     formData.append("file", file);
                     formData.append("type", "background");
                     try {
-                      const res = await supabase.functions.invoke("upload-asset", { body: formData });
-                      if (res.data?.url) {
-                        setSettingsLocal(prev => ({ ...prev, background_url: res.data.url }));
-                        refetchSettings();
+                      const { data: { session } } = await supabase.auth.getSession();
+                      const res = await fetch(`${import.meta.env.VITE_SUPABASE_URL}/functions/v1/upload-asset`, {
+                        method: "POST",
+                        headers: { Authorization: `Bearer ${session?.access_token}` },
+                        body: formData,
+                      });
+                      const json = await res.json();
+                      if (json?.url) {
+                        setSettingsLocal(prev => ({ ...prev, background_url: json.url }));
+                        qc.invalidateQueries({ queryKey: ["business_settings"] });
                         toast.success("Imagem de fundo atualizada!");
                       } else {
-                        throw new Error(res.data?.error || "Erro ao enviar");
+                        throw new Error(json?.error || "Erro ao enviar");
                       }
                     } catch (err: any) {
                       toast.error(err.message || "Erro ao enviar imagem.");
@@ -763,13 +843,19 @@ const Admin = () => {
                     formData.append("file", file);
                     formData.append("type", "logo");
                     try {
-                      const res = await supabase.functions.invoke("upload-asset", { body: formData });
-                      if (res.data?.url) {
-                        setSettingsLocal(prev => ({ ...prev, logo_url: res.data.url }));
-                        refetchSettings();
+                      const { data: { session } } = await supabase.auth.getSession();
+                      const res = await fetch(`${import.meta.env.VITE_SUPABASE_URL}/functions/v1/upload-asset`, {
+                        method: "POST",
+                        headers: { Authorization: `Bearer ${session?.access_token}` },
+                        body: formData,
+                      });
+                      const json = await res.json();
+                      if (json?.url) {
+                        setSettingsLocal(prev => ({ ...prev, logo_url: json.url }));
+                        qc.invalidateQueries({ queryKey: ["business_settings"] });
                         toast.success("Logo atualizada!");
                       } else {
-                        throw new Error(res.data?.error || "Erro ao enviar");
+                        throw new Error(json?.error || "Erro ao enviar");
                       }
                     } catch (err: any) {
                       toast.error(err.message || "Erro ao enviar logo.");
