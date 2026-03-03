@@ -81,12 +81,12 @@ const Admin = () => {
 
   // Stats
   const todayCount = todayAppointments?.length || 0;
-  const todayRevenue = todayAppointments?.filter(a => a.status === "finalizado").reduce((sum, a) => sum + Number(a.total_price), 0) || 0;
+  const todayRevenue = todayAppointments?.filter(a => ["finalizado", "confirmado"].includes(a.status)).reduce((sum, a) => sum + Number(a.total_price), 0) || 0;
   
   const now = new Date();
   const monthStart = format(new Date(now.getFullYear(), now.getMonth(), 1), "yyyy-MM-dd");
-  const monthRevenue = allAppointments?.filter(a => a.status === "finalizado" && a.appointment_date >= monthStart).reduce((sum, a) => sum + Number(a.total_price), 0) || 0;
-  const totalRevenue = allAppointments?.filter(a => a.status === "finalizado").reduce((sum, a) => sum + Number(a.total_price), 0) || 0;
+  const monthRevenue = allAppointments?.filter(a => ["finalizado", "confirmado"].includes(a.status) && a.appointment_date >= monthStart).reduce((sum, a) => sum + Number(a.total_price), 0) || 0;
+  const totalRevenue = allAppointments?.filter(a => ["finalizado", "confirmado"].includes(a.status)).reduce((sum, a) => sum + Number(a.total_price), 0) || 0;
   const avgRating = avaliacoes?.length ? (avaliacoes.reduce((sum, a) => sum + a.stars, 0) / avaliacoes.length).toFixed(0) : "0";
 
   // Appointment actions
@@ -325,7 +325,7 @@ const Admin = () => {
         <Tabs defaultValue="appointments">
           <TabsList className="mb-6 w-full flex-wrap justify-start bg-card border border-border">
             <TabsTrigger value="appointments">Agendamentos</TabsTrigger>
-            <TabsTrigger value="quicksale">Venda</TabsTrigger>
+            <TabsTrigger value="quicksale">Encaixe</TabsTrigger>
             <TabsTrigger value="schedule">Agenda</TabsTrigger>
             <TabsTrigger value="services">Serviços</TabsTrigger>
             <TabsTrigger value="team">Equipe</TabsTrigger>
@@ -373,7 +373,7 @@ const Admin = () => {
                     type="date"
                     value={filterDate}
                     onChange={(e) => setFilterDate(e.target.value)}
-                    className="w-auto bg-background"
+                    className="w-auto bg-card text-foreground border-border [color-scheme:dark]"
                     placeholder="Filtrar por data"
                   />
                   {filterDate && (
@@ -686,6 +686,7 @@ const Admin = () => {
                       <span className="text-xs text-muted-foreground">Ativo</span>
                     </div>
                     <Button size="icon" variant="ghost" onClick={() => openEditService(s)}><Edit2 className="h-4 w-4" /></Button>
+                    <Button size="icon" variant="ghost" onClick={async () => { await supabase.from("services").delete().eq("id", s.id); refetchServices(); toast.success("Serviço excluído!"); }}><Trash2 className="h-4 w-4 text-red-400" /></Button>
                   </div>
                 ))}
               </div>
@@ -927,6 +928,21 @@ const Admin = () => {
                   <label className="text-sm font-semibold mb-1 block">Endereço</label>
                   <Input value={settingsLocal.address || ""} onChange={(e) => setSettingsLocal(prev => ({ ...prev, address: e.target.value }))} className="bg-background" />
                   <Button className="mt-2" size="sm" onClick={() => saveSetting("address")}>Salvar</Button>
+                </div>
+
+                <div>
+                  <label className="text-sm font-semibold mb-1 block">Intervalo entre agendamentos (minutos)</label>
+                  <p className="text-xs text-muted-foreground mb-2">Buffer de tempo entre um atendimento e outro. Padrão: 45 min.</p>
+                  <div className="flex items-center gap-2">
+                    <select
+                      value={settingsLocal.buffer_minutes || "45"}
+                      onChange={(e) => setSettingsLocal(prev => ({ ...prev, buffer_minutes: e.target.value }))}
+                      className="rounded border border-border bg-background px-3 py-2 text-sm"
+                    >
+                      {[15, 30, 45, 60, 90].map(v => <option key={v} value={String(v)}>{v} min</option>)}
+                    </select>
+                    <Button size="sm" onClick={() => saveSetting("buffer_minutes")}>Salvar</Button>
+                  </div>
                 </div>
               </div>
             </div>
