@@ -95,7 +95,7 @@ const AdminLogin = () => {
               value={email}
               onChange={(e) => setEmail(e.target.value)}
               required
-              className="bg-background border-border"
+              className="bg-background border-border text-foreground placeholder:text-muted-foreground"
             />
           </div>
           <div>
@@ -105,7 +105,7 @@ const AdminLogin = () => {
               value={password}
               onChange={(e) => setPassword(e.target.value)}
               required
-              className="bg-background border-border"
+              className="bg-background border-border text-foreground placeholder:text-muted-foreground"
             />
           </div>
         </div>

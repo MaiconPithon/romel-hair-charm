@@ -6,6 +6,7 @@ import { useAvaliacoes } from "@/hooks/useAvaliacoes";
 import { WhatsAppButton } from "@/components/WhatsAppButton";
 import { Scissors, Star, MapPin, Clock, Phone } from "lucide-react";
 import romelBg from "@/assets/romel-bg.jpg";
+import romelLogo from "@/assets/romel-logo.jpeg";
 import { useEffect } from "react";
 
 const Index = () => {
@@ -51,10 +52,9 @@ const Index = () => {
 
       {/* Hero */}
       <section className="relative z-10 flex min-h-screen flex-col items-center justify-end px-4 text-center pb-32">
-        {/* Logo if exists */}
-        {logoUrl && (
-          <img src={logoUrl} alt="Logo" className="h-20 w-auto object-contain mb-6" />
-        )}
+        {/* Logo */}
+        <img src={logoUrl || romelLogo} alt="Romel Barbearia" className="h-24 w-24 rounded-full object-cover mb-4 border-2 border-primary shadow-lg" />
+        <h1 className="text-2xl font-bold text-white mb-2" style={{ fontFamily: 'Playfair Display, serif' }}>Romel Barbearia</h1>
 
         {/* Star rating */}
         {avaliacoes && avaliacoes.length > 0 && (
