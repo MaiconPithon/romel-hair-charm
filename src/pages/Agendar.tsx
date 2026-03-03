@@ -15,17 +15,11 @@ import { WhatsAppButton } from "@/components/WhatsAppButton";
 import { cn } from "@/lib/utils";
 import { format, addDays, getDay, startOfWeek, endOfWeek } from "date-fns";
 import { ptBR } from "date-fns/locale";
-<<<<<<< HEAD
 import { ArrowLeft, Check, ChevronRight, MessageCircle, Clock, Copy } from "lucide-react";
 import { toast } from "sonner";
 import { QRCodeSVG } from "qrcode.react";
 import romelBg from "@/assets/romel-bg.jpg";
 import romelLogo from "@/assets/romel-logo.jpeg";
-=======
-import { ArrowLeft, Check, ChevronRight, MessageCircle } from "lucide-react";
-import { toast } from "sonner";
-import romelBg from "@/assets/romel-bg.jpg";
->>>>>>> 73eb7f5 (Ajuste de branding e logo)
 
 type Step = "service" | "date" | "time" | "info" | "payment" | "confirm" | "done";
 
@@ -56,17 +50,11 @@ const Agendar = () => {
   const totalDuration = chosen.reduce((sum, s) => sum + s.duration, 0);
 
   const currentStepIndex = STEPS.indexOf(step);
-<<<<<<< HEAD
 
   // Get buffer from settings or default 45 min
   const bufferMinutes = settings?.buffer_minutes ? parseInt(settings.buffer_minutes) : 45;
 
   // Generate time slots considering total duration + buffer
-=======
-  const progressPercent = step === "done" ? 100 : ((currentStepIndex + 1) / STEPS.length) * 100;
-
-  // Generate time slots
->>>>>>> 73eb7f5 (Ajuste de branding e logo)
   const generateSlots = (): string[] => {
     if (!selectedDate || !schedule) return [];
     const dow = getDay(selectedDate);
@@ -81,17 +69,12 @@ const Agendar = () => {
     const lunchStart = config.lunch_start ? (() => { const [h, m] = config.lunch_start!.split(":").map(Number); return h * 60 + m; })() : null;
     const lunchEnd = config.lunch_end ? (() => { const [h, m] = config.lunch_end!.split(":").map(Number); return h * 60 + m; })() : null;
 
-<<<<<<< HEAD
     const slotStep = 45; // slot grid step (45-min intervals)
     const neededMin = totalDuration + bufferMinutes; // total block needed
 
     const slots: string[] = [];
     for (let m = openMin; m + totalDuration <= closeMin; m += slotStep) {
       // Check lunch overlap
-=======
-    const slots: string[] = [];
-    for (let m = openMin; m + totalDuration <= closeMin; m += 30) {
->>>>>>> 73eb7f5 (Ajuste de branding e logo)
       if (lunchStart !== null && lunchEnd !== null) {
         if (m < lunchEnd && m + totalDuration > lunchStart) continue;
       }
@@ -105,7 +88,6 @@ const Agendar = () => {
       );
       if (isBlocked) continue;
 
-<<<<<<< HEAD
       // Check overlap with existing appointments considering their duration
       const isOccupied = dayAppointments?.some((a) => {
         if (a.status === "cancelado") return false;
@@ -117,11 +99,6 @@ const Agendar = () => {
         // Check if new slot overlaps with existing appointment
         return m < aEnd && newEnd > aStart;
       });
-=======
-      const isOccupied = dayAppointments?.some(
-        (a) => a.appointment_time === time + ":00" && a.status !== "cancelado"
-      );
->>>>>>> 73eb7f5 (Ajuste de branding e logo)
       if (isOccupied) continue;
 
       slots.push(time);
@@ -132,10 +109,6 @@ const Agendar = () => {
   const isDateDisabled = (date: Date) => {
     const today = new Date(new Date().toDateString());
     if (date < today) return true;
-<<<<<<< HEAD
-=======
-    // Only allow dates within current week (Sunday to Saturday)
->>>>>>> 73eb7f5 (Ajuste de branding e logo)
     const weekStart = startOfWeek(today, { weekStartsOn: 0 });
     const weekEnd = endOfWeek(today, { weekStartsOn: 0 });
     if (date < weekStart || date > weekEnd) return true;
@@ -161,7 +134,6 @@ const Agendar = () => {
         total_duration: totalDuration,
       });
       if (error) throw error;
-<<<<<<< HEAD
 
       // Redirect to WhatsApp with confirmation message
       const whatsappNumber = settings?.whatsapp || "5571988896715";
@@ -172,8 +144,6 @@ const Agendar = () => {
       const waUrl = `https://wa.me/5571988896715?text=${encodeURIComponent(message)}`;
       window.open(waUrl, "_blank", "noopener,noreferrer");
 
-=======
->>>>>>> 73eb7f5 (Ajuste de branding e logo)
       setStep("done");
     } catch {
       toast.error("Erro ao agendar. Tente novamente.");
@@ -185,11 +155,7 @@ const Agendar = () => {
   const handleRate = async (stars: number) => {
     setRating(stars);
     await supabase.from("avaliacoes").insert({ client_name: clientName, stars });
-<<<<<<< HEAD
     toast.success("Avaliação recebida! Muito obrigado. ⭐");
-=======
-    toast.success("Obrigado pela avaliação!");
->>>>>>> 73eb7f5 (Ajuste de branding e logo)
   };
 
   const slots = step === "time" ? generateSlots() : [];
@@ -241,11 +207,7 @@ const Agendar = () => {
         {/* Top bar */}
         <div className="px-4 pt-4">
           <button onClick={step === "done" ? () => navigate("/") : goBack} className="flex items-center gap-1 text-sm text-muted-foreground hover:text-foreground font-semibold uppercase tracking-wider">
-<<<<<<< HEAD
             <ArrowLeft className="h-4 w-4" /> Romel Barbearia
-=======
-            <ArrowLeft className="h-4 w-4" /> AGENDAR HORÁRIO
->>>>>>> 73eb7f5 (Ajuste de branding e logo)
           </button>
         </div>
 
@@ -295,7 +257,6 @@ const Agendar = () => {
                       )
                     }
                   />
-<<<<<<< HEAD
                   <div className="flex-1">
                     <span className="font-medium">{s.name}</span>
                     <div className="flex items-center gap-1 text-xs text-muted-foreground mt-0.5">
@@ -320,33 +281,19 @@ const Agendar = () => {
                   </div>
                 </div>
               )}
-=======
-                  <span className="flex-1 font-medium">{s.name}</span>
-                  <span className="font-bold text-green-500">R$ {Number(s.price).toFixed(2)}</span>
-                </label>
-              ))}
->>>>>>> 73eb7f5 (Ajuste de branding e logo)
             </div>
           )}
 
           {/* Step: Date */}
           {step === "date" && (
             <div className="flex justify-center">
-<<<<<<< HEAD
                <Calendar
-=======
-              <Calendar
->>>>>>> 73eb7f5 (Ajuste de branding e logo)
                 mode="single"
                 selected={selectedDate}
                 onSelect={setSelectedDate}
                 disabled={isDateDisabled}
                 locale={ptBR}
-<<<<<<< HEAD
                 className="pointer-events-auto rounded-lg border border-border bg-card p-3 text-foreground [&_button]:text-foreground [&_.rdp-day_disabled]:text-muted-foreground/40 [&_.rdp-head_cell]:text-muted-foreground [&_.rdp-caption]:text-foreground"
-=======
-                className="pointer-events-auto rounded-lg border border-border bg-transparent p-3"
->>>>>>> 73eb7f5 (Ajuste de branding e logo)
               />
             </div>
           )}
@@ -412,7 +359,6 @@ const Agendar = () => {
                 <span>Dinheiro (pagar no local)</span>
               </button>
 
-<<<<<<< HEAD
               {paymentMethod === "pix" && (
                 <div className="mt-4 rounded-xl border border-border bg-zinc-900 p-6 text-center space-y-4">
                   <p className="text-2xl font-bold text-white">Total a Pagar</p>
@@ -446,28 +392,6 @@ const Agendar = () => {
                       Copiar Chave Pix
                     </button>
                   </div>
-=======
-              {paymentMethod === "pix" && settings?.pix_key && (
-                <div className="mt-4 rounded-xl border border-border bg-card/80 p-6 text-center space-y-3">
-                  <p className="text-lg font-bold">Pagar com PIX</p>
-                  <p className="text-xs text-muted-foreground uppercase tracking-wider">Confirmação imediata</p>
-                  <div className="mt-4 rounded-lg bg-muted/30 p-3 text-center text-sm">
-                    <p className="mb-1 text-muted-foreground text-xs uppercase">Chave PIX Copia e Cola</p>
-                    <p className="font-mono text-sm text-foreground break-all">{settings.pix_key}</p>
-                  </div>
-                  <p className="font-bold text-green-500">Valor: R$ {totalPrice.toFixed(2)}</p>
-                  {settings?.whatsapp && (
-                    <a
-                      href={`https://wa.me/${settings.whatsapp}?text=${encodeURIComponent("Envio do comprovante PIX")}`}
-                      target="_blank"
-                      rel="noopener noreferrer"
-                    >
-                      <Button className="w-full mt-2 bg-green-500 hover:bg-green-600 text-white rounded-full">
-                        <MessageCircle className="h-4 w-4 mr-2" /> Enviar Comprovante via WhatsApp
-                      </Button>
-                    </a>
-                  )}
->>>>>>> 73eb7f5 (Ajuste de branding e logo)
                 </div>
               )}
             </div>
@@ -490,14 +414,9 @@ const Agendar = () => {
           {/* Step: Done */}
           {step === "done" && (
             <div className="flex flex-col items-center gap-4 text-center">
-<<<<<<< HEAD
               <img src={romelLogo} alt="Romel Barbearia" className="h-20 w-20 object-contain" />
               <div className="flex h-12 w-12 items-center justify-center rounded-full bg-green-500/20 border-2 border-green-500 -mt-4">
                 <Check className="h-6 w-6 text-green-500" />
-=======
-              <div className="flex h-16 w-16 items-center justify-center rounded-full bg-green-500/20 border-2 border-green-500">
-                <Check className="h-8 w-8 text-green-500" />
->>>>>>> 73eb7f5 (Ajuste de branding e logo)
               </div>
               <h2 className="text-xl font-bold text-green-500">Agendado!</h2>
 
@@ -511,7 +430,6 @@ const Agendar = () => {
                 <p className="text-green-500 font-bold">Total: R$ {totalPrice.toFixed(2)}</p>
               </div>
 
-<<<<<<< HEAD
               {/* Rating */}
               <div className="w-full rounded-lg border border-border bg-card/60 p-5 flex flex-col items-center">
                 <p className="font-bold text-lg mb-3" style={{ fontFamily: 'Playfair Display, serif' }}>Avalie sua Experiência</p>
@@ -519,26 +437,6 @@ const Agendar = () => {
                 {rating > 0 && (
                   <p className="mt-3 text-green-500 font-medium text-center">Avaliação recebida! Muito obrigado. ⭐</p>
                 )}
-=======
-              {/* WhatsApp confirmation */}
-              {settings?.whatsapp && (
-                <a
-                  href={`https://wa.me/${settings.whatsapp}?text=${encodeURIComponent(`Olá! Agendei um horário para ${selectedDate ? format(selectedDate, "dd/MM/yyyy") : ""} às ${selectedTime}.`)}`}
-                  target="_blank"
-                  rel="noopener noreferrer"
-                  className="w-full"
-                >
-                  <Button className="w-full bg-green-500 hover:bg-green-600 text-white rounded-lg">
-                    <MessageCircle className="h-4 w-4 mr-2" /> Enviar confirmação via WhatsApp
-                  </Button>
-                </a>
-              )}
-
-              {/* Rating */}
-              <div className="w-full rounded-lg border border-border bg-card/60 p-5 text-center">
-                <p className="font-bold text-lg mb-3" style={{ fontFamily: 'Playfair Display, serif' }}>Avalie sua Experiência</p>
-                <StarRating rating={rating} onRate={handleRate} size={36} />
->>>>>>> 73eb7f5 (Ajuste de branding e logo)
               </div>
 
               <button
