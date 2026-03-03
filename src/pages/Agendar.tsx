@@ -18,6 +18,7 @@ import { ptBR } from "date-fns/locale";
 import { ArrowLeft, Check, ChevronRight, MessageCircle, Clock } from "lucide-react";
 import { toast } from "sonner";
 import romelBg from "@/assets/romel-bg.jpg";
+import romelLogo from "@/assets/romel-logo.jpeg";
 
 type Step = "service" | "date" | "time" | "info" | "payment" | "confirm" | "done";
 
@@ -67,7 +68,7 @@ const Agendar = () => {
     const lunchStart = config.lunch_start ? (() => { const [h, m] = config.lunch_start!.split(":").map(Number); return h * 60 + m; })() : null;
     const lunchEnd = config.lunch_end ? (() => { const [h, m] = config.lunch_end!.split(":").map(Number); return h * 60 + m; })() : null;
 
-    const slotStep = 30; // slot grid step
+    const slotStep = 45; // slot grid step (45-min intervals)
     const neededMin = totalDuration + bufferMinutes; // total block needed
 
     const slots: string[] = [];
@@ -204,7 +205,7 @@ const Agendar = () => {
         {/* Top bar */}
         <div className="px-4 pt-4">
           <button onClick={step === "done" ? () => navigate("/") : goBack} className="flex items-center gap-1 text-sm text-muted-foreground hover:text-foreground font-semibold uppercase tracking-wider">
-            <ArrowLeft className="h-4 w-4" /> AGENDAR HORÁRIO
+            <ArrowLeft className="h-4 w-4" /> Romel Barbearia
           </button>
         </div>
 
@@ -284,13 +285,13 @@ const Agendar = () => {
           {/* Step: Date */}
           {step === "date" && (
             <div className="flex justify-center">
-              <Calendar
+               <Calendar
                 mode="single"
                 selected={selectedDate}
                 onSelect={setSelectedDate}
                 disabled={isDateDisabled}
                 locale={ptBR}
-                className="pointer-events-auto rounded-lg border border-border bg-transparent p-3"
+                className="pointer-events-auto rounded-lg border border-border bg-card p-3 text-foreground [&_button]:text-foreground [&_.rdp-day_disabled]:text-muted-foreground/40 [&_.rdp-head_cell]:text-muted-foreground [&_.rdp-caption]:text-foreground"
               />
             </div>
           )}
@@ -387,8 +388,9 @@ const Agendar = () => {
           {/* Step: Done */}
           {step === "done" && (
             <div className="flex flex-col items-center gap-4 text-center">
-              <div className="flex h-16 w-16 items-center justify-center rounded-full bg-green-500/20 border-2 border-green-500">
-                <Check className="h-8 w-8 text-green-500" />
+              <img src={romelLogo} alt="Romel Barbearia" className="h-20 w-20 rounded-full object-cover border-2 border-green-500" />
+              <div className="flex h-12 w-12 items-center justify-center rounded-full bg-green-500/20 border-2 border-green-500 -mt-4">
+                <Check className="h-6 w-6 text-green-500" />
               </div>
               <h2 className="text-xl font-bold text-green-500">Agendado!</h2>
 
@@ -403,11 +405,11 @@ const Agendar = () => {
               </div>
 
               {/* Rating */}
-              <div className="w-full rounded-lg border border-border bg-card/60 p-5 text-center">
+              <div className="w-full rounded-lg border border-border bg-card/60 p-5 flex flex-col items-center">
                 <p className="font-bold text-lg mb-3" style={{ fontFamily: 'Playfair Display, serif' }}>Avalie sua Experiência</p>
                 <StarRating rating={rating} onRate={handleRate} size={36} />
                 {rating > 0 && (
-                  <p className="mt-3 text-green-500 font-medium">Avaliação recebida! Muito obrigado. ⭐</p>
+                  <p className="mt-3 text-green-500 font-medium text-center">Avaliação recebida! Muito obrigado. ⭐</p>
                 )}
               </div>
 
