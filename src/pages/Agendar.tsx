@@ -17,7 +17,7 @@ import { format, addDays, getDay, startOfWeek, endOfWeek } from "date-fns";
 import { ptBR } from "date-fns/locale";
 import { ArrowLeft, Check, ChevronRight, MessageCircle } from "lucide-react";
 import { toast } from "sonner";
-import barberBg from "@/assets/barber-bg.jpg";
+import romelBg from "@/assets/romel-bg.jpg";
 
 type Step = "service" | "date" | "time" | "info" | "payment" | "confirm" | "done";
 
@@ -174,7 +174,7 @@ const Agendar = () => {
       {/* Background image */}
       <div
         className="fixed inset-0 z-0 bg-cover bg-center bg-no-repeat opacity-30"
-        style={{ backgroundImage: `url(${barberBg})` }}
+        style={{ backgroundImage: `url(${romelBg})` }}
       />
       <div className="fixed inset-0 z-0 bg-gradient-to-b from-background/60 via-background/80 to-background" />
 
