@@ -1,10 +1,10 @@
 import { useState } from "react";
-import { useNavigate } from "react-router-dom";
+import { useNavigate, Link } from "react-router-dom";
 import { supabase } from "@/integrations/supabase/client";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { toast } from "sonner";
-import { Scissors } from "lucide-react";
+import { Home } from "lucide-react";
 
 const AdminLogin = () => {
   const navigate = useNavigate();
@@ -19,7 +19,6 @@ const AdminLogin = () => {
       const { error } = await supabase.auth.signInWithPassword({ email, password });
       if (error) throw error;
 
-      // Check admin role
       const { data: { user } } = await supabase.auth.getUser();
       if (!user) throw new Error("Usuário não encontrado");
       
@@ -42,20 +41,87 @@ const AdminLogin = () => {
     }
   };
 
+  const handleForgotPassword = async () => {
+    if (!email) {
+      toast.error("Digite seu email primeiro.");
+      return;
+    }
+    try {
+      const { error } = await supabase.auth.resetPasswordForEmail(email, {
+        redirectTo: `${window.location.origin}/reset-password`,
+      });
+      if (error) throw error;
+      toast.success("Email de recuperação enviado!");
+    } catch (err: any) {
+      toast.error(err.message || "Erro ao enviar email.");
+    }
+  };
+
+  const handleMagicLink = async () => {
+    if (!email) {
+      toast.error("Digite seu email primeiro.");
+      return;
+    }
+    try {
+      const { error } = await supabase.auth.signInWithOtp({ email });
+      if (error) throw error;
+      toast.success("Link mágico enviado para seu email!");
+    } catch (err: any) {
+      toast.error(err.message || "Erro ao enviar link.");
+    }
+  };
+
   return (
     <div className="dark flex min-h-screen items-center justify-center bg-background px-4">
-      <form onSubmit={handleLogin} className="w-full max-w-sm space-y-6 rounded-xl border border-border bg-card p-8">
+      <form onSubmit={handleLogin} className="w-full max-w-sm space-y-5 rounded-xl border border-border bg-card p-8">
         <div className="flex flex-col items-center gap-2">
-          <Scissors className="h-10 w-10 text-primary" />
-          <h1 className="text-2xl font-bold text-foreground">Painel Admin</h1>
+          <h1 className="text-2xl font-bold text-primary italic" style={{ fontFamily: 'Playfair Display, serif' }}>
+            Área do Barbeiro
+          </h1>
+          <Link to="/" className="flex items-center gap-1 text-sm text-muted-foreground hover:text-foreground transition-colors">
+            <Home className="h-4 w-4" /> Página Inicial
+          </Link>
         </div>
-        <div className="space-y-4">
-          <Input type="email" placeholder="E-mail" value={email} onChange={(e) => setEmail(e.target.value)} required />
-          <Input type="password" placeholder="Senha" value={password} onChange={(e) => setPassword(e.target.value)} required />
+
+        <Button type="button" variant="outline" className="w-full font-bold text-foreground" disabled>
+          Entrar
+        </Button>
+
+        <div className="space-y-3">
+          <div>
+            <label className="text-sm font-medium text-primary mb-1 block">Email</label>
+            <Input
+              type="email"
+              value={email}
+              onChange={(e) => setEmail(e.target.value)}
+              required
+              className="bg-background border-border"
+            />
+          </div>
+          <div>
+            <label className="text-sm font-medium text-primary mb-1 block">Senha</label>
+            <Input
+              type="password"
+              value={password}
+              onChange={(e) => setPassword(e.target.value)}
+              required
+              className="bg-background border-border"
+            />
+          </div>
         </div>
-        <Button type="submit" className="w-full rounded-full font-bold" disabled={loading}>
+
+        <Button type="submit" className="w-full rounded-full font-bold bg-primary hover:bg-primary/90 text-primary-foreground" disabled={loading}>
           {loading ? "Entrando..." : "Entrar"}
         </Button>
+
+        <div className="flex flex-col items-center gap-1">
+          <button type="button" onClick={handleForgotPassword} className="text-sm font-semibold text-primary hover:underline">
+            Esqueci minha senha
+          </button>
+          <button type="button" onClick={handleMagicLink} className="text-sm text-muted-foreground hover:text-foreground transition-colors">
+            Entrar com link mágico (sem senha)
+          </button>
+        </div>
       </form>
     </div>
   );

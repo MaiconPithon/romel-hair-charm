@@ -7,6 +7,7 @@ import { StarRating } from "@/components/StarRating";
 import { WhatsAppButton } from "@/components/WhatsAppButton";
 import { Scissors, MapPin, Clock, Phone } from "lucide-react";
 import romelBg from "@/assets/romel-bg.jpg";
+import { useEffect } from "react";
 
 const Index = () => {
   const { data: services } = useServices();
@@ -15,32 +16,37 @@ const Index = () => {
 
   const businessName = settings?.business_name || "Barbearia do Romel";
   const address = settings?.address || "";
+  const bgImage = settings?.background_url || romelBg;
   const avgRating = avaliacoes?.length
     ? avaliacoes.reduce((sum, a) => sum + a.stars, 0) / avaliacoes.length
     : 0;
 
+  // Apply dynamic colors from settings
+  useEffect(() => {
+    if (settings?.primary_color) {
+      document.documentElement.style.setProperty("--dynamic-primary", settings.primary_color);
+    }
+    if (settings?.bg_color) {
+      document.documentElement.style.setProperty("--dynamic-bg", settings.bg_color);
+    }
+    return () => {
+      document.documentElement.style.removeProperty("--dynamic-primary");
+      document.documentElement.style.removeProperty("--dynamic-bg");
+    };
+  }, [settings]);
+
   return (
-    <div className="dark min-h-screen bg-background text-foreground relative">
+    <div className="dark min-h-screen bg-background text-foreground relative" style={settings?.bg_color ? { backgroundColor: settings.bg_color } : undefined}>
       {/* Full-screen background */}
       <div
         className="fixed inset-0 z-0 bg-cover bg-center bg-no-repeat"
-        style={{ backgroundImage: `url(${romelBg})` }}
+        style={{ backgroundImage: `url(${bgImage})` }}
       />
       <div className="fixed inset-0 z-0 bg-black/40" />
 
       {/* Hero */}
       <section className="relative z-10 flex min-h-screen flex-col items-center justify-center px-4 text-center">
-        <div className="flex flex-col items-center gap-6">
-          <h1 className="text-5xl font-black tracking-tight text-foreground md:text-7xl">
-            {businessName.split(" ").map((word, i, arr) =>
-              i === arr.length - 1 ? (
-                <span key={i} className="text-green-500"> {word}</span>
-              ) : (
-                <span key={i}>{i > 0 ? " " : ""}{word}</span>
-              )
-            )}
-          </h1>
-          <p className="text-sm uppercase tracking-[0.3em] text-muted-foreground">Estilo & Atitude</p>
+        <div className="flex flex-col items-center gap-6 mt-32">
           {avaliacoes && avaliacoes.length > 0 && (
             <div className="flex items-center gap-2">
               <StarRating rating={Math.round(avgRating)} />
@@ -78,10 +84,10 @@ const Index = () => {
 
         {/* Footer */}
         <div className="absolute bottom-4 flex flex-col items-center gap-1 text-xs text-muted-foreground/50">
-          <Link to="/admin/login" className="hover:text-muted-foreground transition-colors">
+          <Link to="/admin/login" className="hover:text-muted-foreground transition-colors font-medium">
             Área do Barbeiro
           </Link>
-          <span>Desenvolvido por Michael Pithon</span>
+          <span className="mt-1">Desenvolvido por Michael Pithon</span>
         </div>
       </section>
 
