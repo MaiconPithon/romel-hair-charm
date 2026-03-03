@@ -138,7 +138,7 @@ const Agendar = () => {
       const whatsappNumber = settings?.whatsapp || "5571988896715";
       const dateFormatted = selectedDate ? format(selectedDate, "dd/MM/yyyy") : "";
       const servicesList = chosen.map((s) => s.name).join(", ");
-      const message = `✅ Agendamento Confirmado!\n📍 Barbearia Romel\n👤 Cliente: ${clientName}\n✂️ Serviço: ${servicesList}\n📅 Data: ${dateFormatted} às ${selectedTime}\n💰 Valor: R$ ${totalPrice.toFixed(2)}\nPor favor, envie o comprovante do Pix para garantir sua vaga!`;
+      const message = `Olá, ${clientName}! Passando para confirmar seu agendamento de 💇🏽‍♂️ ${servicesList} hoje às ${selectedTime}⌚ -> 💈 𝕭𝖆𝖗𝖇𝖊𝖆𝖗𝖎𝖆 𝕯𝖔 𝕽𝖔𝖒𝖊𝖑💈. Te aguardamos!`;
       
       window.open(`https://wa.me/${whatsappNumber}?text=${encodeURIComponent(message)}`, "_blank");
 
@@ -388,7 +388,7 @@ const Agendar = () => {
           {/* Step: Done */}
           {step === "done" && (
             <div className="flex flex-col items-center gap-4 text-center">
-              <img src={romelLogo} alt="Romel Barbearia" className="h-20 w-20 rounded-full object-cover border-2 border-green-500" />
+              <img src={romelLogo} alt="Romel Barbearia" className="h-20 w-20 object-contain" />
               <div className="flex h-12 w-12 items-center justify-center rounded-full bg-green-500/20 border-2 border-green-500 -mt-4">
                 <Check className="h-6 w-6 text-green-500" />
               </div>
