@@ -430,7 +430,7 @@ const Admin = () => {
                         <TableCell>
                           <div className="flex gap-1">
                             {a.client_phone && a.client_phone !== "N/A" && (
-                              <a href={`https://wa.me/${a.client_phone}?text=${encodeURIComponent(`Olá, ${a.client_name}! Passando para confirmar seu agendamento de 💇🏽‍♂️ ${a.service_names?.join(", ")} hoje às ${a.appointment_time.substring(0, 5)}⌚ -> 💈 𝕭𝖆𝖗𝖇𝖊𝖆𝖗𝖎𝖆 𝕯𝖔 𝕽𝖔𝖒𝖊𝖑 💈. Te aguardamos!`)}`} target="_blank" rel="noopener noreferrer">
+                              <a href={`https://wa.me/${a.client_phone}?text=${encodeURIComponent(`Lembrete de agendamento Olá, ${a.client_name}! Passando para confirmar seu agendamento de 💇🏽‍♂️ ${a.service_names?.join(", ")} hoje às ${a.appointment_time.substring(0, 5)}⌚ -> 💈 𝕭𝖆𝖗𝖇𝖊𝖆𝖗𝖎𝖆 𝕯𝖔 𝕽𝖔𝖒𝖊𝖑💈. Te aguardamos!`)}`} target="_blank" rel="noopener noreferrer">
                                 <Button size="icon" variant="ghost" className="h-8 w-8"><MessageCircle className="h-4 w-4 text-green-500" /></Button>
                               </a>
                             )}
@@ -1029,9 +1029,9 @@ const Admin = () => {
         <DialogContent className="dark">
           <DialogHeader><DialogTitle>{editService ? "Editar Serviço" : "Novo Serviço"}</DialogTitle></DialogHeader>
           <div className="space-y-3">
-            <Input placeholder="Nome" value={sName} onChange={(e) => setSName(e.target.value)} />
-            <Input placeholder="Preço" type="number" value={sPrice} onChange={(e) => setSPrice(e.target.value)} />
-            <Input placeholder="Duração (min)" type="number" value={sDuration} onChange={(e) => setSDuration(e.target.value)} />
+            <Input placeholder="Nome" value={sName} onChange={(e) => setSName(e.target.value)} className="bg-zinc-800 text-white border-border focus:border-yellow-500" />
+            <Input placeholder="Preço" type="number" value={sPrice} onChange={(e) => setSPrice(e.target.value)} className="bg-zinc-800 text-white border-border focus:border-yellow-500" />
+            <Input placeholder="Duração (min)" type="number" value={sDuration} onChange={(e) => setSDuration(e.target.value)} className="bg-zinc-800 text-white border-border focus:border-yellow-500" />
             <Button onClick={saveService} className="w-full">Salvar</Button>
           </div>
         </DialogContent>
