@@ -373,7 +373,7 @@ const Admin = () => {
                     type="date"
                     value={filterDate}
                     onChange={(e) => setFilterDate(e.target.value)}
-                    className="w-auto bg-card text-foreground border-border [color-scheme:dark]"
+                    className="w-auto bg-muted text-foreground border-border"
                     placeholder="Filtrar por data"
                   />
                   {filterDate && (
@@ -405,7 +405,7 @@ const Admin = () => {
                         <TableCell className="text-xs">{a.client_phone}</TableCell>
                         <TableCell>
                           <span className="text-sm">{a.service_names?.join(" + ")}</span>
-                          <br /><span className="text-xs text-muted-foreground">{a.total_duration} min</span>
+                          <br /><span className="text-xs text-muted-foreground">{a.total_duration > 0 ? a.total_duration : (a.service_names?.length || 1) * 30} min</span>
                         </TableCell>
                         <TableCell className="text-green-500 font-medium">R$ {Number(a.total_price).toFixed(2)}</TableCell>
                         <TableCell className="text-xs capitalize">{a.payment_method || "—"}</TableCell>

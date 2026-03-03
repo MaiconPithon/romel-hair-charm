@@ -53,8 +53,7 @@ const Index = () => {
       {/* Hero */}
       <section className="relative z-10 flex min-h-screen flex-col items-center justify-end px-4 text-center pb-32">
         {/* Logo */}
-        <img src={logoUrl || romelLogo} alt="Romel Barbearia" className="h-24 w-24 rounded-full object-cover mb-4 border-2 border-primary shadow-lg" />
-        <h1 className="text-2xl font-bold text-white mb-2" style={{ fontFamily: 'Playfair Display, serif' }}>Romel Barbearia</h1>
+        <img src={logoUrl || romelLogo} alt="Romel Barbearia" className="h-24 w-24 object-contain mb-4" />
 
         {/* Star rating */}
         {avaliacoes && avaliacoes.length > 0 && (
