@@ -81,12 +81,21 @@ const Admin = () => {
 
   // Stats
   const todayCount = todayAppointments?.length || 0;
+<<<<<<< HEAD
   const todayRevenue = todayAppointments?.filter(a => ["finalizado", "confirmado"].includes(a.status)).reduce((sum, a) => sum + Number(a.total_price), 0) || 0;
   
   const now = new Date();
   const monthStart = format(new Date(now.getFullYear(), now.getMonth(), 1), "yyyy-MM-dd");
   const monthRevenue = allAppointments?.filter(a => ["finalizado", "confirmado"].includes(a.status) && a.appointment_date >= monthStart).reduce((sum, a) => sum + Number(a.total_price), 0) || 0;
   const totalRevenue = allAppointments?.filter(a => ["finalizado", "confirmado"].includes(a.status)).reduce((sum, a) => sum + Number(a.total_price), 0) || 0;
+=======
+  const todayRevenue = todayAppointments?.filter(a => a.status === "finalizado").reduce((sum, a) => sum + Number(a.total_price), 0) || 0;
+  
+  const now = new Date();
+  const monthStart = format(new Date(now.getFullYear(), now.getMonth(), 1), "yyyy-MM-dd");
+  const monthRevenue = allAppointments?.filter(a => a.status === "finalizado" && a.appointment_date >= monthStart).reduce((sum, a) => sum + Number(a.total_price), 0) || 0;
+  const totalRevenue = allAppointments?.filter(a => a.status === "finalizado").reduce((sum, a) => sum + Number(a.total_price), 0) || 0;
+>>>>>>> 73eb7f5 (Ajuste de branding e logo)
   const avgRating = avaliacoes?.length ? (avaliacoes.reduce((sum, a) => sum + a.stars, 0) / avaliacoes.length).toFixed(0) : "0";
 
   // Appointment actions
@@ -325,7 +334,11 @@ const Admin = () => {
         <Tabs defaultValue="appointments">
           <TabsList className="mb-6 w-full flex-wrap justify-start bg-card border border-border">
             <TabsTrigger value="appointments">Agendamentos</TabsTrigger>
+<<<<<<< HEAD
             <TabsTrigger value="quicksale">Encaixe</TabsTrigger>
+=======
+            <TabsTrigger value="quicksale">Venda</TabsTrigger>
+>>>>>>> 73eb7f5 (Ajuste de branding e logo)
             <TabsTrigger value="schedule">Agenda</TabsTrigger>
             <TabsTrigger value="services">Serviços</TabsTrigger>
             <TabsTrigger value="team">Equipe</TabsTrigger>
@@ -373,7 +386,11 @@ const Admin = () => {
                     type="date"
                     value={filterDate}
                     onChange={(e) => setFilterDate(e.target.value)}
+<<<<<<< HEAD
                     className="w-auto bg-muted text-foreground border-border"
+=======
+                    className="w-auto bg-background"
+>>>>>>> 73eb7f5 (Ajuste de branding e logo)
                     placeholder="Filtrar por data"
                   />
                   {filterDate && (
@@ -405,7 +422,11 @@ const Admin = () => {
                         <TableCell className="text-xs">{a.client_phone}</TableCell>
                         <TableCell>
                           <span className="text-sm">{a.service_names?.join(" + ")}</span>
+<<<<<<< HEAD
                           <br /><span className="text-xs text-muted-foreground">{a.total_duration > 0 ? a.total_duration : a.service_names?.reduce((sum, name) => { const n = name.toLowerCase(); if (n.includes("corte")) return sum + 45; if (n.includes("barba")) return sum + 30; if (n.includes("sobrancelha") || n.includes("pigment")) return sum + 15; return sum + 30; }, 0)} min</span>
+=======
+                          <br /><span className="text-xs text-muted-foreground">{a.total_duration} min</span>
+>>>>>>> 73eb7f5 (Ajuste de branding e logo)
                         </TableCell>
                         <TableCell className="text-green-500 font-medium">R$ {Number(a.total_price).toFixed(2)}</TableCell>
                         <TableCell className="text-xs capitalize">{a.payment_method || "—"}</TableCell>
@@ -430,7 +451,11 @@ const Admin = () => {
                         <TableCell>
                           <div className="flex gap-1">
                             {a.client_phone && a.client_phone !== "N/A" && (
+<<<<<<< HEAD
                               <a href={`https://wa.me/${a.client_phone}?text=${encodeURIComponent(`Lembrete de agendamento Olá, ${a.client_name}! Passando para confirmar seu agendamento de 💇🏽‍♂️ ${a.service_names?.join(", ")} hoje às ${a.appointment_time.substring(0, 5)}⌚ -> 💈 𝕭𝖆𝖗𝖇𝖊𝖆𝖗𝖎𝖆 𝕯𝖔 𝕽𝖔𝖒𝖊𝖑💈. Te aguardamos!`)}`} target="_blank" rel="noopener noreferrer">
+=======
+                              <a href={`https://wa.me/${a.client_phone}`} target="_blank" rel="noopener noreferrer">
+>>>>>>> 73eb7f5 (Ajuste de branding e logo)
                                 <Button size="icon" variant="ghost" className="h-8 w-8"><MessageCircle className="h-4 w-4 text-green-500" /></Button>
                               </a>
                             )}
@@ -686,7 +711,10 @@ const Admin = () => {
                       <span className="text-xs text-muted-foreground">Ativo</span>
                     </div>
                     <Button size="icon" variant="ghost" onClick={() => openEditService(s)}><Edit2 className="h-4 w-4" /></Button>
+<<<<<<< HEAD
                     <Button size="icon" variant="ghost" onClick={async () => { await supabase.from("services").delete().eq("id", s.id); refetchServices(); toast.success("Serviço excluído!"); }}><Trash2 className="h-4 w-4 text-red-400" /></Button>
+=======
+>>>>>>> 73eb7f5 (Ajuste de branding e logo)
                   </div>
                 ))}
               </div>
@@ -929,6 +957,7 @@ const Admin = () => {
                   <Input value={settingsLocal.address || ""} onChange={(e) => setSettingsLocal(prev => ({ ...prev, address: e.target.value }))} className="bg-background" />
                   <Button className="mt-2" size="sm" onClick={() => saveSetting("address")}>Salvar</Button>
                 </div>
+<<<<<<< HEAD
 
                 <div>
                   <label className="text-sm font-semibold mb-1 block">Intervalo entre agendamentos (minutos)</label>
@@ -944,6 +973,8 @@ const Admin = () => {
                     <Button size="sm" onClick={() => saveSetting("buffer_minutes")}>Salvar</Button>
                   </div>
                 </div>
+=======
+>>>>>>> 73eb7f5 (Ajuste de branding e logo)
               </div>
             </div>
           </TabsContent>
@@ -1029,9 +1060,15 @@ const Admin = () => {
         <DialogContent className="dark">
           <DialogHeader><DialogTitle>{editService ? "Editar Serviço" : "Novo Serviço"}</DialogTitle></DialogHeader>
           <div className="space-y-3">
+<<<<<<< HEAD
             <Input placeholder="Nome" value={sName} onChange={(e) => setSName(e.target.value)} className="bg-zinc-800 text-white border-border focus:border-yellow-500" />
             <Input placeholder="Preço" type="number" value={sPrice} onChange={(e) => setSPrice(e.target.value)} className="bg-zinc-800 text-white border-border focus:border-yellow-500" />
             <Input placeholder="Duração (min)" type="number" value={sDuration} onChange={(e) => setSDuration(e.target.value)} className="bg-zinc-800 text-white border-border focus:border-yellow-500" />
+=======
+            <Input placeholder="Nome" value={sName} onChange={(e) => setSName(e.target.value)} />
+            <Input placeholder="Preço" type="number" value={sPrice} onChange={(e) => setSPrice(e.target.value)} />
+            <Input placeholder="Duração (min)" type="number" value={sDuration} onChange={(e) => setSDuration(e.target.value)} />
+>>>>>>> 73eb7f5 (Ajuste de branding e logo)
             <Button onClick={saveService} className="w-full">Salvar</Button>
           </div>
         </DialogContent>
