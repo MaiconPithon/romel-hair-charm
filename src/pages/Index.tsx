@@ -16,11 +16,12 @@ const Index = () => {
   const businessName = settings?.business_name || "Barbearia do Romel";
   const address = settings?.address || "";
   const bgImage = settings?.background_url || romelBg;
+  const logoUrl = settings?.logo_url;
   const avgRating = avaliacoes?.length
     ? avaliacoes.reduce((sum, a) => sum + a.stars, 0) / avaliacoes.length
     : 0;
 
-  // Apply dynamic colors from settings
+  // Apply dynamic colors from settings globally
   useEffect(() => {
     if (settings?.primary_color) {
       document.documentElement.style.setProperty("--dynamic-primary", settings.primary_color);
@@ -36,15 +37,34 @@ const Index = () => {
 
   return (
     <div className="dark min-h-screen bg-background text-foreground relative" style={settings?.bg_color ? { backgroundColor: settings.bg_color } : undefined}>
-      {/* Full-screen background */}
+      {/* Full-screen background - mobile optimized */}
       <div
-        className="fixed inset-0 z-0 bg-cover bg-center bg-no-repeat"
-        style={{ backgroundImage: `url(${bgImage})` }}
+        className="fixed inset-0 z-0"
+        style={{
+          backgroundImage: `url(${bgImage})`,
+          backgroundSize: "cover",
+          backgroundPosition: "center center",
+          backgroundRepeat: "no-repeat",
+        }}
       />
       <div className="fixed inset-0 z-0 bg-black/40" />
 
       {/* Hero */}
       <section className="relative z-10 flex min-h-screen flex-col items-center justify-end px-4 text-center pb-32">
+        {/* Logo if exists */}
+        {logoUrl && (
+          <img src={logoUrl} alt="Logo" className="h-20 w-auto object-contain mb-6" />
+        )}
+
+        {/* Star rating */}
+        {avaliacoes && avaliacoes.length > 0 && (
+          <div className="flex items-center gap-1 rounded-full bg-black/60 px-3 py-1.5 backdrop-blur-sm mb-4">
+            <Star className="h-4 w-4 fill-yellow-500 text-yellow-500" />
+            <span className="text-sm font-bold text-white">{Math.round(avgRating)}</span>
+            <span className="text-xs text-muted-foreground">({avaliacoes.length})</span>
+          </div>
+        )}
+
         <Link to="/agendar">
           <Button size="lg" className="rounded-full px-10 text-lg font-bold bg-green-600 hover:bg-green-700 text-white gap-2">
             <Scissors className="h-5 w-5" /> AGENDAR HORÁRIO
@@ -52,7 +72,7 @@ const Index = () => {
         </Link>
 
         {/* Info bar */}
-        <div className="mt-8 flex flex-wrap items-center justify-center gap-6 px-4 text-sm text-muted-foreground">
+        <div className="mt-8 flex flex-wrap items-center justify-center gap-4 md:gap-6 px-4 text-sm text-white/70">
           <div className="flex items-center gap-2">
             <Clock className="h-4 w-4 text-green-500" />
             <span>Ter–Sáb · 08h às 21h</span>
@@ -79,15 +99,6 @@ const Index = () => {
           <span className="mt-1">Desenvolvido por Michael Pithon</span>
         </div>
       </section>
-
-      {/* Star rating above WhatsApp */}
-      {avaliacoes && avaliacoes.length > 0 && (
-        <div className="fixed bottom-24 right-6 z-50 flex items-center gap-1 rounded-full bg-black/60 px-3 py-1.5 backdrop-blur-sm">
-          <Star className="h-4 w-4 fill-yellow-500 text-yellow-500" />
-          <span className="text-sm font-bold text-white">{Math.round(avgRating)}</span>
-          <span className="text-xs text-muted-foreground">({avaliacoes.length})</span>
-        </div>
-      )}
 
       <WhatsAppButton />
     </div>

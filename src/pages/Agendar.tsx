@@ -15,7 +15,7 @@ import { WhatsAppButton } from "@/components/WhatsAppButton";
 import { cn } from "@/lib/utils";
 import { format, addDays, getDay, startOfWeek, endOfWeek } from "date-fns";
 import { ptBR } from "date-fns/locale";
-import { ArrowLeft, Check, ChevronRight, MessageCircle } from "lucide-react";
+import { ArrowLeft, Check, ChevronRight, MessageCircle, Clock } from "lucide-react";
 import { toast } from "sonner";
 import romelBg from "@/assets/romel-bg.jpg";
 
@@ -48,9 +48,11 @@ const Agendar = () => {
   const totalDuration = chosen.reduce((sum, s) => sum + s.duration, 0);
 
   const currentStepIndex = STEPS.indexOf(step);
-  const progressPercent = step === "done" ? 100 : ((currentStepIndex + 1) / STEPS.length) * 100;
 
-  // Generate time slots
+  // Get buffer from settings or default 45 min
+  const bufferMinutes = settings?.buffer_minutes ? parseInt(settings.buffer_minutes) : 45;
+
+  // Generate time slots considering total duration + buffer
   const generateSlots = (): string[] => {
     if (!selectedDate || !schedule) return [];
     const dow = getDay(selectedDate);
@@ -65,8 +67,12 @@ const Agendar = () => {
     const lunchStart = config.lunch_start ? (() => { const [h, m] = config.lunch_start!.split(":").map(Number); return h * 60 + m; })() : null;
     const lunchEnd = config.lunch_end ? (() => { const [h, m] = config.lunch_end!.split(":").map(Number); return h * 60 + m; })() : null;
 
+    const slotStep = 30; // slot grid step
+    const neededMin = totalDuration + bufferMinutes; // total block needed
+
     const slots: string[] = [];
-    for (let m = openMin; m + totalDuration <= closeMin; m += 30) {
+    for (let m = openMin; m + totalDuration <= closeMin; m += slotStep) {
+      // Check lunch overlap
       if (lunchStart !== null && lunchEnd !== null) {
         if (m < lunchEnd && m + totalDuration > lunchStart) continue;
       }
@@ -80,9 +86,17 @@ const Agendar = () => {
       );
       if (isBlocked) continue;
 
-      const isOccupied = dayAppointments?.some(
-        (a) => a.appointment_time === time + ":00" && a.status !== "cancelado"
-      );
+      // Check overlap with existing appointments considering their duration
+      const isOccupied = dayAppointments?.some((a) => {
+        if (a.status === "cancelado") return false;
+        const [ah, am] = a.appointment_time.split(":").map(Number);
+        const aStart = ah * 60 + am;
+        const aDuration = (a.total_duration || 30) + bufferMinutes;
+        const aEnd = aStart + aDuration;
+        const newEnd = m + totalDuration;
+        // Check if new slot overlaps with existing appointment
+        return m < aEnd && newEnd > aStart;
+      });
       if (isOccupied) continue;
 
       slots.push(time);
@@ -93,7 +107,6 @@ const Agendar = () => {
   const isDateDisabled = (date: Date) => {
     const today = new Date(new Date().toDateString());
     if (date < today) return true;
-    // Only allow dates within current week (Sunday to Saturday)
     const weekStart = startOfWeek(today, { weekStartsOn: 0 });
     const weekEnd = endOfWeek(today, { weekStartsOn: 0 });
     if (date < weekStart || date > weekEnd) return true;
@@ -119,6 +132,15 @@ const Agendar = () => {
         total_duration: totalDuration,
       });
       if (error) throw error;
+
+      // Redirect to WhatsApp with confirmation message
+      const whatsappNumber = settings?.whatsapp || "5571988896715";
+      const dateFormatted = selectedDate ? format(selectedDate, "dd/MM/yyyy") : "";
+      const servicesList = chosen.map((s) => s.name).join(", ");
+      const message = `✅ Agendamento Confirmado!\n📍 Barbearia Romel\n👤 Cliente: ${clientName}\n✂️ Serviço: ${servicesList}\n📅 Data: ${dateFormatted} às ${selectedTime}\n💰 Valor: R$ ${totalPrice.toFixed(2)}\nPor favor, envie o comprovante do Pix para garantir sua vaga!`;
+      
+      window.open(`https://wa.me/${whatsappNumber}?text=${encodeURIComponent(message)}`, "_blank");
+
       setStep("done");
     } catch {
       toast.error("Erro ao agendar. Tente novamente.");
@@ -130,7 +152,7 @@ const Agendar = () => {
   const handleRate = async (stars: number) => {
     setRating(stars);
     await supabase.from("avaliacoes").insert({ client_name: clientName, stars });
-    toast.success("Obrigado pela avaliação!");
+    toast.success("Avaliação recebida! Muito obrigado. ⭐");
   };
 
   const slots = step === "time" ? generateSlots() : [];
@@ -232,10 +254,30 @@ const Agendar = () => {
                       )
                     }
                   />
-                  <span className="flex-1 font-medium">{s.name}</span>
+                  <div className="flex-1">
+                    <span className="font-medium">{s.name}</span>
+                    <div className="flex items-center gap-1 text-xs text-muted-foreground mt-0.5">
+                      <Clock className="h-3 w-3" />
+                      <span>{s.duration} min</span>
+                    </div>
+                  </div>
                   <span className="font-bold text-green-500">R$ {Number(s.price).toFixed(2)}</span>
                 </label>
               ))}
+
+              {/* Dynamic total summary */}
+              {selectedServices.length > 0 && (
+                <div className="rounded-lg border border-green-500/30 bg-green-500/5 p-4 mt-4">
+                  <div className="flex items-center justify-between text-sm">
+                    <span className="text-muted-foreground">Duração total:</span>
+                    <span className="font-bold">{totalDuration} min</span>
+                  </div>
+                  <div className="flex items-center justify-between text-sm mt-1">
+                    <span className="text-muted-foreground">Valor total:</span>
+                    <span className="font-bold text-green-500">R$ {totalPrice.toFixed(2)}</span>
+                  </div>
+                </div>
+              )}
             </div>
           )}
 
@@ -323,17 +365,6 @@ const Agendar = () => {
                     <p className="font-mono text-sm text-foreground break-all">{settings.pix_key}</p>
                   </div>
                   <p className="font-bold text-green-500">Valor: R$ {totalPrice.toFixed(2)}</p>
-                  {settings?.whatsapp && (
-                    <a
-                      href={`https://wa.me/${settings.whatsapp}?text=${encodeURIComponent("Envio do comprovante PIX")}`}
-                      target="_blank"
-                      rel="noopener noreferrer"
-                    >
-                      <Button className="w-full mt-2 bg-green-500 hover:bg-green-600 text-white rounded-full">
-                        <MessageCircle className="h-4 w-4 mr-2" /> Enviar Comprovante via WhatsApp
-                      </Button>
-                    </a>
-                  )}
                 </div>
               )}
             </div>
@@ -371,24 +402,13 @@ const Agendar = () => {
                 <p className="text-green-500 font-bold">Total: R$ {totalPrice.toFixed(2)}</p>
               </div>
 
-              {/* WhatsApp confirmation */}
-              {settings?.whatsapp && (
-                <a
-                  href={`https://wa.me/${settings.whatsapp}?text=${encodeURIComponent(`Olá! Agendei um horário para ${selectedDate ? format(selectedDate, "dd/MM/yyyy") : ""} às ${selectedTime}.`)}`}
-                  target="_blank"
-                  rel="noopener noreferrer"
-                  className="w-full"
-                >
-                  <Button className="w-full bg-green-500 hover:bg-green-600 text-white rounded-lg">
-                    <MessageCircle className="h-4 w-4 mr-2" /> Enviar confirmação via WhatsApp
-                  </Button>
-                </a>
-              )}
-
               {/* Rating */}
               <div className="w-full rounded-lg border border-border bg-card/60 p-5 text-center">
                 <p className="font-bold text-lg mb-3" style={{ fontFamily: 'Playfair Display, serif' }}>Avalie sua Experiência</p>
                 <StarRating rating={rating} onRate={handleRate} size={36} />
+                {rating > 0 && (
+                  <p className="mt-3 text-green-500 font-medium">Avaliação recebida! Muito obrigado. ⭐</p>
+                )}
               </div>
 
               <button
