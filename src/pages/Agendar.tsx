@@ -142,7 +142,7 @@ const Agendar = () => {
       const message = `✅ Agendamento Confirmado!\n\n📍 Barbearia Romel\n👤 Cliente: ${clientName}\n✂️ Serviço: ${servicesList}\n📅 Data: ${dateFormatted} às ${selectedTime}\n💰 Valor: R$ ${totalPrice.toFixed(2)}\n\nPor favor, envie o comprovante do Pix para garantir sua vaga!`;
       
       const waUrl = `https://wa.me/5571988896715?text=${encodeURIComponent(message)}`;
-      window.location.href = waUrl;
+      window.open(waUrl, "_blank", "noopener,noreferrer");
 
       setStep("done");
     } catch {
@@ -360,32 +360,38 @@ const Agendar = () => {
               </button>
 
               {paymentMethod === "pix" && (
-                <div className="mt-4 rounded-xl border border-border bg-card/80 p-6 text-center space-y-4">
-                  <p className="text-lg font-bold">Pagar com PIX</p>
-                  <p className="text-xs text-muted-foreground uppercase tracking-wider">Confirmação imediata</p>
-                  <p className="text-xl font-bold text-green-500">Valor a pagar: R$ {totalPrice.toFixed(2)}</p>
+                <div className="mt-4 rounded-xl border border-border bg-zinc-900 p-6 text-center space-y-4">
+                  <p className="text-2xl font-bold text-white">Total a Pagar</p>
+                  <p className="text-3xl font-black text-green-500">R$ {totalPrice.toFixed(2)}</p>
+                  <p className="text-xs text-zinc-400 uppercase tracking-wider">Escaneie o QR Code ou copie a chave</p>
                   <div className="flex justify-center">
                     <div className="bg-white p-3 rounded-lg">
                       <QRCodeSVG
                         value={(() => {
-                          const base = "00020126440014BR.GOV.BCB.PIX0122romel.cruz@hotmail.com5204000053039865802BR5925Romel da Cruz Mascarenhas6009SAO PAULO62140510iY2ZGjlaHK6304C971";
-                          return base;
+                          // Build dynamic BR Code payload with value
+                          const valorStr = totalPrice.toFixed(2);
+                          const valorTag = `54${String(valorStr.length).padStart(2, "0")}${valorStr}`;
+                          return `00020126440014BR.GOV.BCB.PIX0122romel.cruz@hotmail.com5204000053039865${valorTag}5802BR5925Romel da Cruz Mascarenhas6008SALVADOR62140510iY2ZGjlaHK6304`;
                         })()}
                         size={200}
                       />
                     </div>
                   </div>
-                  <button
-                    onClick={() => {
-                      const pixCode = "00020126440014BR.GOV.BCB.PIX0122romel.cruz@hotmail.com5204000053039865802BR5925Romel da Cruz Mascarenhas6009SAO PAULO62140510iY2ZGjlaHK6304C971";
-                      navigator.clipboard.writeText(pixCode);
-                      toast.success("Código Pix copiado!");
-                    }}
-                    className="w-full flex items-center justify-center gap-2 rounded-lg border border-green-500 bg-green-500/10 py-3 font-medium text-green-500 hover:bg-green-500/20 transition-colors"
-                  >
-                    <Copy className="h-4 w-4" />
-                    Copiar Código Pix
-                  </button>
+
+                  {/* Chave Pix visível */}
+                  <div className="rounded-lg bg-zinc-800 p-3 flex items-center justify-between gap-2">
+                    <span className="text-sm text-zinc-300 truncate">romel.cruz@hotmail.com</span>
+                    <button
+                      onClick={() => {
+                        navigator.clipboard.writeText("romel.cruz@hotmail.com");
+                        toast.success("Chave Pix copiada!");
+                      }}
+                      className="shrink-0 rounded-lg bg-yellow-600 hover:bg-yellow-500 text-white px-4 py-2 text-sm font-bold transition-colors flex items-center gap-1"
+                    >
+                      <Copy className="h-4 w-4" />
+                      Copiar Chave Pix
+                    </button>
+                  </div>
                 </div>
               )}
             </div>
