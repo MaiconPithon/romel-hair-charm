@@ -161,6 +161,7 @@ export type Database = {
           created_at: string
           duration: number
           id: string
+          interval_minutes: number
           name: string
           price: number
           sort_order: number
@@ -170,6 +171,7 @@ export type Database = {
           created_at?: string
           duration?: number
           id?: string
+          interval_minutes?: number
           name: string
           price?: number
           sort_order?: number
@@ -179,6 +181,7 @@ export type Database = {
           created_at?: string
           duration?: number
           id?: string
+          interval_minutes?: number
           name?: string
           price?: number
           sort_order?: number
