@@ -138,7 +138,7 @@ const Agendar = () => {
       const whatsappNumber = settings?.whatsapp || "5571988896715";
       const dateFormatted = selectedDate ? format(selectedDate, "dd/MM/yyyy") : "";
       const servicesList = chosen.map((s) => s.name).join(", ");
-      const message = `Olá, ${clientName}! Passando para confirmar seu agendamento de 💇🏽‍♂️ ${servicesList} hoje às ${selectedTime}⌚ -> 💈 𝕭𝖆𝖗𝖇𝖊𝖆𝖗𝖎𝖆 𝕯𝖔 𝕽𝖔𝖒𝖊𝖑💈. Te aguardamos!`;
+      const message = `✅ Agendamento Confirmado!\n📍 Barbearia Romel\n👤 Cliente: ${clientName}\n✂️ Serviço: ${servicesList}\n📅 Data: ${dateFormatted} às ${selectedTime}\n💰 Valor: R$ ${totalPrice.toFixed(2)}\nPor favor, envie o comprovante do Pix para garantir sua vaga!`;
       
       window.open(`https://wa.me/${whatsappNumber}?text=${encodeURIComponent(message)}`, "_blank");
 

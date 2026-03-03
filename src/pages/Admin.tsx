@@ -405,7 +405,7 @@ const Admin = () => {
                         <TableCell className="text-xs">{a.client_phone}</TableCell>
                         <TableCell>
                           <span className="text-sm">{a.service_names?.join(" + ")}</span>
-                          <br /><span className="text-xs text-muted-foreground">{a.total_duration > 0 ? a.total_duration : (a.service_names?.length || 1) * 30} min</span>
+                          <br /><span className="text-xs text-muted-foreground">{a.total_duration > 0 ? a.total_duration : a.service_names?.reduce((sum, name) => { const n = name.toLowerCase(); if (n.includes("corte")) return sum + 45; if (n.includes("barba")) return sum + 30; if (n.includes("sobrancelha") || n.includes("pigment")) return sum + 15; return sum + 30; }, 0)} min</span>
                         </TableCell>
                         <TableCell className="text-green-500 font-medium">R$ {Number(a.total_price).toFixed(2)}</TableCell>
                         <TableCell className="text-xs capitalize">{a.payment_method || "—"}</TableCell>
@@ -430,7 +430,7 @@ const Admin = () => {
                         <TableCell>
                           <div className="flex gap-1">
                             {a.client_phone && a.client_phone !== "N/A" && (
-                              <a href={`https://wa.me/${a.client_phone}`} target="_blank" rel="noopener noreferrer">
+                              <a href={`https://wa.me/${a.client_phone}?text=${encodeURIComponent(`Olá, ${a.client_name}! Passando para confirmar seu agendamento de 💇🏽‍♂️ ${a.service_names?.join(", ")} hoje às ${a.appointment_time.substring(0, 5)}⌚ -> 💈 𝕭𝖆𝖗𝖇𝖊𝖆𝖗𝖎𝖆 𝕯𝖔 𝕽𝖔𝖒𝖊𝖑 💈. Te aguardamos!`)}`} target="_blank" rel="noopener noreferrer">
                                 <Button size="icon" variant="ghost" className="h-8 w-8"><MessageCircle className="h-4 w-4 text-green-500" /></Button>
                               </a>
                             )}
