@@ -15,8 +15,9 @@ import { WhatsAppButton } from "@/components/WhatsAppButton";
 import { cn } from "@/lib/utils";
 import { format, addDays, getDay, startOfWeek, endOfWeek } from "date-fns";
 import { ptBR } from "date-fns/locale";
-import { ArrowLeft, Check, ChevronRight, MessageCircle, Clock } from "lucide-react";
+import { ArrowLeft, Check, ChevronRight, MessageCircle, Clock, Copy } from "lucide-react";
 import { toast } from "sonner";
+import { QRCodeSVG } from "qrcode.react";
 import romelBg from "@/assets/romel-bg.jpg";
 import romelLogo from "@/assets/romel-logo.jpeg";
 
@@ -138,9 +139,10 @@ const Agendar = () => {
       const whatsappNumber = settings?.whatsapp || "5571988896715";
       const dateFormatted = selectedDate ? format(selectedDate, "dd/MM/yyyy") : "";
       const servicesList = chosen.map((s) => s.name).join(", ");
-      const message = `✅ Agendamento Confirmado!\n📍 Barbearia Romel\n👤 Cliente: ${clientName}\n✂️ Serviço: ${servicesList}\n📅 Data: ${dateFormatted} às ${selectedTime}\n💰 Valor: R$ ${totalPrice.toFixed(2)}\nPor favor, envie o comprovante do Pix para garantir sua vaga!`;
+      const message = `✅ Agendamento Confirmado!\n\n📍 Barbearia Romel\n👤 Cliente: ${clientName}\n✂️ Serviço: ${servicesList}\n📅 Data: ${dateFormatted} às ${selectedTime}\n💰 Valor: R$ ${totalPrice.toFixed(2)}\n\nPor favor, envie o comprovante do Pix para garantir sua vaga!`;
       
-      window.open(`https://wa.me/${whatsappNumber}?text=${encodeURIComponent(message)}`, "_blank");
+      const waUrl = `https://wa.me/5571988896715?text=${encodeURIComponent(message)}`;
+      window.location.href = waUrl;
 
       setStep("done");
     } catch {
@@ -357,15 +359,33 @@ const Agendar = () => {
                 <span>Dinheiro (pagar no local)</span>
               </button>
 
-              {paymentMethod === "pix" && settings?.pix_key && (
-                <div className="mt-4 rounded-xl border border-border bg-card/80 p-6 text-center space-y-3">
+              {paymentMethod === "pix" && (
+                <div className="mt-4 rounded-xl border border-border bg-card/80 p-6 text-center space-y-4">
                   <p className="text-lg font-bold">Pagar com PIX</p>
                   <p className="text-xs text-muted-foreground uppercase tracking-wider">Confirmação imediata</p>
-                  <div className="mt-4 rounded-lg bg-muted/30 p-3 text-center text-sm">
-                    <p className="mb-1 text-muted-foreground text-xs uppercase">Chave PIX Copia e Cola</p>
-                    <p className="font-mono text-sm text-foreground break-all">{settings.pix_key}</p>
+                  <p className="text-xl font-bold text-green-500">Valor a pagar: R$ {totalPrice.toFixed(2)}</p>
+                  <div className="flex justify-center">
+                    <div className="bg-white p-3 rounded-lg">
+                      <QRCodeSVG
+                        value={(() => {
+                          const base = "00020126440014BR.GOV.BCB.PIX0122romel.cruz@hotmail.com5204000053039865802BR5925Romel da Cruz Mascarenhas6009SAO PAULO62140510iY2ZGjlaHK6304C971";
+                          return base;
+                        })()}
+                        size={200}
+                      />
+                    </div>
                   </div>
-                  <p className="font-bold text-green-500">Valor: R$ {totalPrice.toFixed(2)}</p>
+                  <button
+                    onClick={() => {
+                      const pixCode = "00020126440014BR.GOV.BCB.PIX0122romel.cruz@hotmail.com5204000053039865802BR5925Romel da Cruz Mascarenhas6009SAO PAULO62140510iY2ZGjlaHK6304C971";
+                      navigator.clipboard.writeText(pixCode);
+                      toast.success("Código Pix copiado!");
+                    }}
+                    className="w-full flex items-center justify-center gap-2 rounded-lg border border-green-500 bg-green-500/10 py-3 font-medium text-green-500 hover:bg-green-500/20 transition-colors"
+                  >
+                    <Copy className="h-4 w-4" />
+                    Copiar Código Pix
+                  </button>
                 </div>
               )}
             </div>
