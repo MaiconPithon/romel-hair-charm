@@ -3,9 +3,8 @@ import { Button } from "@/components/ui/button";
 import { useServices } from "@/hooks/useServices";
 import { useBusinessSettings } from "@/hooks/useBusinessSettings";
 import { useAvaliacoes } from "@/hooks/useAvaliacoes";
-import { StarRating } from "@/components/StarRating";
 import { WhatsAppButton } from "@/components/WhatsAppButton";
-import { Scissors, Star } from "lucide-react";
+import { Scissors, Star, MapPin, Clock, Phone } from "lucide-react";
 import romelBg from "@/assets/romel-bg.jpg";
 import { useEffect } from "react";
 
@@ -45,16 +44,32 @@ const Index = () => {
       <div className="fixed inset-0 z-0 bg-black/40" />
 
       {/* Hero */}
-      <section className="relative z-10 flex min-h-screen flex-col items-center justify-center px-4 text-center">
-        <div className="flex-1" />
-
+      <section className="relative z-10 flex min-h-screen flex-col items-center justify-end px-4 text-center pb-32">
         <Link to="/agendar">
           <Button size="lg" className="rounded-full px-10 text-lg font-bold bg-green-600 hover:bg-green-700 text-white gap-2">
             <Scissors className="h-5 w-5" /> AGENDAR HORÁRIO
           </Button>
         </Link>
 
-        <div className="flex-1" />
+        {/* Info bar */}
+        <div className="mt-8 flex flex-wrap items-center justify-center gap-6 px-4 text-sm text-muted-foreground">
+          <div className="flex items-center gap-2">
+            <Clock className="h-4 w-4 text-green-500" />
+            <span>Ter–Sáb · 08h às 21h</span>
+          </div>
+          {settings?.whatsapp && (
+            <div className="flex items-center gap-2">
+              <Phone className="h-4 w-4 text-green-500" />
+              <span>(71) 98889-6715</span>
+            </div>
+          )}
+          {address && (
+            <div className="flex items-center gap-2">
+              <MapPin className="h-4 w-4 text-green-500" />
+              <span>{address}</span>
+            </div>
+          )}
+        </div>
 
         {/* Footer */}
         <div className="absolute bottom-4 flex flex-col items-center gap-1 text-xs text-muted-foreground/50">
