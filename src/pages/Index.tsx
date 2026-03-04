@@ -36,6 +36,9 @@ const Index = () => {
     };
   }, [settings]);
 
+  const primaryColor = settings?.primary_color || "#d1b122";
+  const infoColor = settings?.info_color || "#d1b122";
+
   return (
     <div className="dark min-h-screen bg-background text-foreground relative" style={settings?.bg_color ? { backgroundColor: settings.bg_color } : undefined}>
       {/* Full-screen background - mobile optimized */}
@@ -65,7 +68,11 @@ const Index = () => {
         )}
 
         <Link to="/agendar">
-          <Button size="lg" className="rounded-full px-10 text-lg font-bold bg-green-600 hover:bg-green-700 text-white gap-2">
+          <Button
+            size="lg"
+            className="rounded-full px-10 text-lg font-bold gap-2"
+            style={{ backgroundColor: primaryColor, color: "#000" }}
+          >
             <Scissors className="h-5 w-5" /> AGENDAR HORÁRIO
           </Button>
         </Link>
@@ -73,19 +80,19 @@ const Index = () => {
         {/* Info bar */}
         <div className="mt-8 flex flex-wrap items-center justify-center gap-4 md:gap-6 px-4 text-sm text-white/70">
           <div className="flex items-center gap-2">
-            <Clock className="h-4 w-4 text-green-500" />
-            <span>Ter–Sáb · 08h às 21h</span>
+            <Clock className="h-4 w-4" style={{ color: infoColor }} />
+            <span style={{ color: infoColor }}>Ter–Sáb · 08h às 21h</span>
           </div>
           {settings?.whatsapp && (
             <div className="flex items-center gap-2">
-              <Phone className="h-4 w-4 text-green-500" />
-              <span>(71) 98889-6715</span>
+              <Phone className="h-4 w-4" style={{ color: infoColor }} />
+              <span style={{ color: infoColor }}>(71) 98889-6715</span>
             </div>
           )}
           {address && (
             <div className="flex items-center gap-2">
-              <MapPin className="h-4 w-4 text-green-500" />
-              <span>{address}</span>
+              <MapPin className="h-4 w-4" style={{ color: infoColor }} />
+              <span style={{ color: infoColor }}>{address}</span>
             </div>
           )}
         </div>

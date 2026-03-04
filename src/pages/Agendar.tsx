@@ -53,9 +53,12 @@ const Agendar = () => {
 
   // Get buffer from settings or default 45 min
   const bufferMinutes = settings?.buffer_minutes ? parseInt(settings.buffer_minutes) : 45;
+  const primaryColor = settings?.primary_color || "#d1b122";
 
-  // Generate time slots considering total duration + buffer
-  const generateSlots = (): string[] => {
+  // Generate time slots with availability info
+  type SlotInfo = { time: string; available: boolean; reason?: string };
+
+  const generateSlots = (): SlotInfo[] => {
     if (!selectedDate || !schedule) return [];
     const dow = getDay(selectedDate);
     const config = schedule.find((c) => c.day_of_week === dow);
@@ -69,39 +72,58 @@ const Agendar = () => {
     const lunchStart = config.lunch_start ? (() => { const [h, m] = config.lunch_start!.split(":").map(Number); return h * 60 + m; })() : null;
     const lunchEnd = config.lunch_end ? (() => { const [h, m] = config.lunch_end!.split(":").map(Number); return h * 60 + m; })() : null;
 
-    const slotStep = 45; // slot grid step (45-min intervals)
-    const neededMin = totalDuration + bufferMinutes; // total block needed
+    const slotStep = 45;
 
-    const slots: string[] = [];
+    const now = new Date();
+    const ds = format(selectedDate, "yyyy-MM-dd");
+    const todayStr = format(now, "yyyy-MM-dd");
+    const nowMin = now.getHours() * 60 + now.getMinutes();
+
+    const slots: SlotInfo[] = [];
     for (let m = openMin; m + totalDuration <= closeMin; m += slotStep) {
-      // Check lunch overlap
-      if (lunchStart !== null && lunchEnd !== null) {
-        if (m < lunchEnd && m + totalDuration > lunchStart) continue;
-      }
       const hh = String(Math.floor(m / 60)).padStart(2, "0");
       const mm = String(m % 60).padStart(2, "0");
       const time = `${hh}:${mm}`;
 
-      const ds = format(selectedDate, "yyyy-MM-dd");
+      // Past time check
+      if (ds === todayStr && m <= nowMin) {
+        slots.push({ time, available: false, reason: "past" });
+        continue;
+      }
+
+      // Lunch overlap
+      if (lunchStart !== null && lunchEnd !== null) {
+        if (m < lunchEnd && m + totalDuration > lunchStart) {
+          slots.push({ time, available: false, reason: "lunch" });
+          continue;
+        }
+      }
+
+      // Blocked slot
       const isBlocked = blocked?.some(
         (b) => b.blocked_date === ds && (b.all_day || b.blocked_time === time + ":00")
       );
-      if (isBlocked) continue;
+      if (isBlocked) {
+        slots.push({ time, available: false, reason: "blocked" });
+        continue;
+      }
 
-      // Check overlap with existing appointments considering their duration
+      // Overlap with existing appointments (duration-aware)
       const isOccupied = dayAppointments?.some((a) => {
         if (a.status === "cancelado") return false;
         const [ah, am] = a.appointment_time.split(":").map(Number);
         const aStart = ah * 60 + am;
-        const aDuration = (a.total_duration || 30) + bufferMinutes;
+        const aDuration = a.total_duration || 30;
         const aEnd = aStart + aDuration;
         const newEnd = m + totalDuration;
-        // Check if new slot overlaps with existing appointment
         return m < aEnd && newEnd > aStart;
       });
-      if (isOccupied) continue;
+      if (isOccupied) {
+        slots.push({ time, available: false, reason: "occupied" });
+        continue;
+      }
 
-      slots.push(time);
+      slots.push({ time, available: true });
     }
     return slots;
   };
@@ -140,7 +162,7 @@ const Agendar = () => {
       const dateFormatted = selectedDate ? format(selectedDate, "dd/MM/yyyy") : "";
       const servicesList = chosen.map((s) => s.name).join(", ");
       const message = `✅ Agendamento Confirmado!\n\n📍 Barbearia Romel\n👤 Cliente: ${clientName}\n✂️ Serviço: ${servicesList}\n📅 Data: ${dateFormatted} às ${selectedTime}\n💰 Valor: R$ ${totalPrice.toFixed(2)}\n\nPor favor, envie o comprovante do Pix para garantir sua vaga!`;
-      
+
       const waUrl = `https://wa.me/5571988896715?text=${encodeURIComponent(message)}`;
       window.open(waUrl, "_blank", "noopener,noreferrer");
 
@@ -218,9 +240,9 @@ const Agendar = () => {
               <div
                 className={cn(
                   "h-full rounded-full transition-all duration-300",
-                  i <= currentStepIndex || step === "done" ? "bg-green-500" : "bg-transparent"
+                  i <= currentStepIndex || step === "done" ? "" : "bg-transparent"
                 )}
-                style={{ width: "100%" }}
+                style={{ width: "100%", backgroundColor: i <= currentStepIndex || step === "done" ? primaryColor : undefined }}
               />
             </div>
           ))}
@@ -246,8 +268,9 @@ const Agendar = () => {
                   key={s.id}
                   className={cn(
                     "flex cursor-pointer items-center gap-3 rounded-lg border p-4 transition-colors",
-                    selectedServices.includes(s.id) ? "border-green-500 bg-green-500/10" : "border-border bg-card/50 hover:border-muted-foreground"
+                    selectedServices.includes(s.id) ? "border-2 bg-opacity-10" : "border-border bg-card/50 hover:border-muted-foreground"
                   )}
+                  style={selectedServices.includes(s.id) ? { borderColor: primaryColor, backgroundColor: `${primaryColor}15` } : undefined}
                 >
                   <Checkbox
                     checked={selectedServices.includes(s.id)}
@@ -264,20 +287,20 @@ const Agendar = () => {
                       <span>{s.duration} min</span>
                     </div>
                   </div>
-                  <span className="font-bold text-green-500">R$ {Number(s.price).toFixed(2)}</span>
+                  <span className="font-bold" style={{ color: primaryColor }}>R$ {Number(s.price).toFixed(2)}</span>
                 </label>
               ))}
 
               {/* Dynamic total summary */}
               {selectedServices.length > 0 && (
-                <div className="rounded-lg border border-green-500/30 bg-green-500/5 p-4 mt-4">
+                <div className="rounded-lg border p-4 mt-4" style={{ borderColor: `${primaryColor}50`, backgroundColor: `${primaryColor}0D` }}>
                   <div className="flex items-center justify-between text-sm">
                     <span className="text-muted-foreground">Duração total:</span>
                     <span className="font-bold">{totalDuration} min</span>
                   </div>
                   <div className="flex items-center justify-between text-sm mt-1">
                     <span className="text-muted-foreground">Valor total:</span>
-                    <span className="font-bold text-green-500">R$ {totalPrice.toFixed(2)}</span>
+                    <span className="font-bold" style={{ color: primaryColor }}>R$ {totalPrice.toFixed(2)}</span>
                   </div>
                 </div>
               )}
@@ -287,7 +310,7 @@ const Agendar = () => {
           {/* Step: Date */}
           {step === "date" && (
             <div className="flex justify-center">
-               <Calendar
+              <Calendar
                 mode="single"
                 selected={selectedDate}
                 onSelect={setSelectedDate}
@@ -302,20 +325,28 @@ const Agendar = () => {
           {step === "time" && (
             <div className="grid grid-cols-3 gap-2">
               {slots.length === 0 && (
-                <p className="col-span-3 text-center text-muted-foreground py-8">Nenhum horário disponível</p>
+                <p className="col-span-3 text-center text-muted-foreground py-8">
+                  {selectedDate && format(selectedDate, "yyyy-MM-dd") === format(new Date(), "yyyy-MM-dd")
+                    ? "Não há mais horários disponíveis para hoje"
+                    : "Nenhum horário disponível"}
+                </p>
               )}
-              {slots.map((time) => (
+              {slots.map((slot) => (
                 <button
-                  key={time}
-                  onClick={() => setSelectedTime(time)}
+                  key={slot.time}
+                  onClick={() => slot.available && setSelectedTime(slot.time)}
+                  disabled={!slot.available}
                   className={cn(
                     "rounded-lg border py-3 text-center font-medium transition-colors",
-                    selectedTime === time
-                      ? "border-green-500 bg-green-500 text-white"
-                      : "border-border bg-card/60 hover:border-green-500/50"
+                    !slot.available
+                      ? "border-border bg-card/30 opacity-40 line-through pointer-events-none cursor-not-allowed text-muted-foreground"
+                      : selectedTime === slot.time
+                        ? "border-2 text-white"
+                        : "border-border bg-card/60"
                   )}
+                  style={slot.available && selectedTime === slot.time ? { borderColor: primaryColor, backgroundColor: primaryColor } : undefined}
                 >
-                  {time}
+                  {slot.time}
                 </button>
               ))}
             </div>
@@ -342,8 +373,9 @@ const Agendar = () => {
                 onClick={() => setPaymentMethod("pix")}
                 className={cn(
                   "w-full flex items-center gap-3 rounded-lg border p-4 text-left font-medium transition-colors",
-                  paymentMethod === "pix" ? "border-green-500 bg-green-500/10" : "border-border bg-card/50 hover:border-muted-foreground"
+                  paymentMethod === "pix" ? "border-2" : "border-border bg-card/50 hover:border-muted-foreground"
                 )}
+                style={paymentMethod === "pix" ? { borderColor: primaryColor, backgroundColor: `${primaryColor}15` } : undefined}
               >
                 <span className="text-lg">⚡</span>
                 <span>Pix</span>
@@ -352,8 +384,9 @@ const Agendar = () => {
                 onClick={() => setPaymentMethod("dinheiro")}
                 className={cn(
                   "w-full flex items-center gap-3 rounded-lg border p-4 text-left font-medium transition-colors",
-                  paymentMethod === "dinheiro" ? "border-green-500 bg-green-500/10" : "border-border bg-card/50 hover:border-muted-foreground"
+                  paymentMethod === "dinheiro" ? "border-2" : "border-border bg-card/50 hover:border-muted-foreground"
                 )}
+                style={paymentMethod === "dinheiro" ? { borderColor: primaryColor, backgroundColor: `${primaryColor}15` } : undefined}
               >
                 <span className="text-lg">💵</span>
                 <span>Dinheiro (pagar no local)</span>
@@ -362,7 +395,7 @@ const Agendar = () => {
               {paymentMethod === "pix" && (
                 <div className="mt-4 rounded-xl border border-border bg-zinc-900 p-6 text-center space-y-4">
                   <p className="text-2xl font-bold text-white">Total a Pagar</p>
-                  <p className="text-3xl font-black text-green-500">R$ {totalPrice.toFixed(2)}</p>
+                  <p className="text-3xl font-black" style={{ color: primaryColor }}>R$ {totalPrice.toFixed(2)}</p>
                   <p className="text-xs text-zinc-400 uppercase tracking-wider">Escaneie o QR Code ou copie a chave</p>
                   <div className="flex justify-center">
                     <div className="bg-white p-3 rounded-lg">
@@ -407,7 +440,7 @@ const Agendar = () => {
               <p><span className="text-muted-foreground">Serviço:</span> <span className="font-bold">{chosen.map((s) => s.name).join(", ")}</span></p>
               <p><span className="text-muted-foreground">Duração:</span> <span className="font-bold">{totalDuration} min</span></p>
               <p><span className="text-muted-foreground">Pagamento:</span> <span className="font-bold">{paymentMethod === "pix" ? "Pix" : "Dinheiro"}</span></p>
-              <p className="text-green-500 font-bold">Total: R$ {totalPrice.toFixed(2)}</p>
+              <p className="font-bold" style={{ color: primaryColor }}>Total: R$ {totalPrice.toFixed(2)}</p>
             </div>
           )}
 
@@ -415,10 +448,10 @@ const Agendar = () => {
           {step === "done" && (
             <div className="flex flex-col items-center gap-4 text-center">
               <img src={romelLogo} alt="Romel Barbearia" className="h-20 w-20 object-contain" />
-              <div className="flex h-12 w-12 items-center justify-center rounded-full bg-green-500/20 border-2 border-green-500 -mt-4">
-                <Check className="h-6 w-6 text-green-500" />
+              <div className="flex h-12 w-12 items-center justify-center rounded-full border-2 -mt-4" style={{ borderColor: primaryColor, backgroundColor: `${primaryColor}33` }}>
+                <Check className="h-6 w-6" style={{ color: primaryColor }} />
               </div>
-              <h2 className="text-xl font-bold text-green-500">Agendado!</h2>
+              <h2 className="text-xl font-bold" style={{ color: primaryColor }}>Agendado!</h2>
 
               {/* Summary card */}
               <div className="w-full rounded-lg border border-border bg-card/60 p-5 text-sm text-left space-y-1">
@@ -427,7 +460,7 @@ const Agendar = () => {
                 <p><span className="text-muted-foreground">Data:</span> <span className="font-bold">{selectedDate ? format(selectedDate, "dd/MM/yyyy") : ""}</span></p>
                 <p><span className="text-muted-foreground">Horário:</span> <span className="font-bold">{selectedTime}</span></p>
                 <p><span className="text-muted-foreground">Pagamento:</span> <span className="font-bold">{paymentMethod === "pix" ? "Pix" : "Dinheiro"}</span></p>
-                <p className="text-green-500 font-bold">Total: R$ {totalPrice.toFixed(2)}</p>
+                <p className="font-bold" style={{ color: primaryColor }}>Total: R$ {totalPrice.toFixed(2)}</p>
               </div>
 
               {/* Rating */}
@@ -435,7 +468,7 @@ const Agendar = () => {
                 <p className="font-bold text-lg mb-3" style={{ fontFamily: 'Playfair Display, serif' }}>Avalie sua Experiência</p>
                 <StarRating rating={rating} onRate={handleRate} size={36} />
                 {rating > 0 && (
-                  <p className="mt-3 text-green-500 font-medium text-center">Avaliação recebida! Muito obrigado. ⭐</p>
+                  <p className="mt-3 font-medium text-center" style={{ color: primaryColor }}>Avaliação recebida! Muito obrigado. ⭐</p>
                 )}
               </div>
 
@@ -453,7 +486,8 @@ const Agendar = () => {
         {step !== "done" && (
           <div className="fixed bottom-0 left-0 right-0 z-20 px-4 pb-4 pt-2 bg-gradient-to-t from-background via-background to-transparent">
             <Button
-              className="w-full rounded-lg text-base font-bold bg-green-500 hover:bg-green-600 text-white py-6"
+              className="w-full rounded-lg text-base font-bold text-black py-6"
+              style={{ backgroundColor: primaryColor }}
               disabled={!canNext() || saving}
               onClick={step === "confirm" ? handleSubmit : goNext}
             >

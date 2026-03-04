@@ -82,7 +82,7 @@ const Admin = () => {
   // Stats
   const todayCount = todayAppointments?.length || 0;
   const todayRevenue = todayAppointments?.filter(a => ["finalizado", "confirmado"].includes(a.status)).reduce((sum, a) => sum + Number(a.total_price), 0) || 0;
-  
+
   const now = new Date();
   const monthStart = format(new Date(now.getFullYear(), now.getMonth(), 1), "yyyy-MM-dd");
   const monthRevenue = allAppointments?.filter(a => ["finalizado", "confirmado"].includes(a.status) && a.appointment_date >= monthStart).reduce((sum, a) => sum + Number(a.total_price), 0) || 0;
@@ -108,7 +108,7 @@ const Admin = () => {
   const [editServiceIds, setEditServiceIds] = useState<string[]>([]);
   const [customServiceName, setCustomServiceName] = useState("");
   const [customServicePrice, setCustomServicePrice] = useState("");
-  const [customServices, setCustomServices] = useState<{name: string; price: number}[]>([]);
+  const [customServices, setCustomServices] = useState<{ name: string; price: number }[]>([]);
 
   const openEditAppt = (a: any) => {
     setEditAppt(a);
@@ -137,7 +137,7 @@ const Admin = () => {
       total_price: totalPrice,
       total_duration: totalDuration,
     }).eq("id", editAppt.id);
-    
+
     setEditDialog(false);
     refetchAppts();
     toast.success("Agendamento atualizado!");
@@ -228,7 +228,7 @@ const Admin = () => {
   const [qsServiceIds, setQsServiceIds] = useState<string[]>([]);
   const [qsCustomName, setQsCustomName] = useState("");
   const [qsCustomPrice, setQsCustomPrice] = useState("");
-  const [qsCustomServices, setQsCustomServices] = useState<{name: string; price: number}[]>([]);
+  const [qsCustomServices, setQsCustomServices] = useState<{ name: string; price: number }[]>([]);
   const [qsPaymentStatus, setQsPaymentStatus] = useState("pago");
   const [qsDate, setQsDate] = useState(format(new Date(), "yyyy-MM-dd"));
   const [qsHour, setQsHour] = useState(format(new Date(), "HH"));
@@ -304,6 +304,7 @@ const Admin = () => {
   };
 
   const businessName = settings?.business_name || "Barbearia do Romel";
+  const primaryColor = settings?.primary_color || "#d1b122";
 
   return (
     <div className="dark min-h-screen bg-background text-foreground">
@@ -338,22 +339,22 @@ const Admin = () => {
             {/* Stats cards */}
             <div className="grid grid-cols-2 md:grid-cols-5 gap-3 mb-6">
               <div className="rounded-lg border border-border bg-card p-4">
-                <div className="flex items-center gap-2 text-muted-foreground mb-1"><CalendarIcon className="h-4 w-4 text-green-500" /></div>
+                <div className="flex items-center gap-2 text-muted-foreground mb-1"><CalendarIcon className="h-4 w-4" style={{ color: primaryColor }} /></div>
                 <p className="text-2xl font-bold">{todayCount}</p>
                 <p className="text-xs text-muted-foreground">Agendamentos hoje</p>
               </div>
               <div className="rounded-lg border border-border bg-card p-4">
-                <div className="flex items-center gap-2 text-muted-foreground mb-1"><DollarSign className="h-4 w-4 text-green-500" /></div>
-                <p className="text-2xl font-bold text-green-500">R$ {todayRevenue.toFixed(2)}</p>
+                <div className="flex items-center gap-2 text-muted-foreground mb-1"><DollarSign className="h-4 w-4" style={{ color: primaryColor }} /></div>
+                <p className="text-2xl font-bold" style={{ color: primaryColor }}>R$ {todayRevenue.toFixed(2)}</p>
                 <p className="text-xs text-muted-foreground">Faturamento hoje</p>
               </div>
               <div className="rounded-lg border border-border bg-card p-4">
-                <div className="flex items-center gap-2 text-muted-foreground mb-1"><DollarSign className="h-4 w-4 text-green-500" /></div>
+                <div className="flex items-center gap-2 text-muted-foreground mb-1"><DollarSign className="h-4 w-4" style={{ color: primaryColor }} /></div>
                 <p className="text-2xl font-bold">R$ {monthRevenue.toFixed(2)}</p>
                 <p className="text-xs text-muted-foreground">Este mês</p>
               </div>
               <div className="rounded-lg border border-border bg-card p-4">
-                <div className="flex items-center gap-2 text-muted-foreground mb-1"><DollarSign className="h-4 w-4 text-green-500" /></div>
+                <div className="flex items-center gap-2 text-muted-foreground mb-1"><DollarSign className="h-4 w-4" style={{ color: primaryColor }} /></div>
                 <p className="text-2xl font-bold">R$ {totalRevenue.toFixed(2)}</p>
                 <p className="text-xs text-muted-foreground">Total geral</p>
               </div>
@@ -407,7 +408,7 @@ const Admin = () => {
                           <span className="text-sm">{a.service_names?.join(" + ")}</span>
                           <br /><span className="text-xs text-muted-foreground">{a.total_duration > 0 ? a.total_duration : a.service_names?.reduce((sum, name) => { const n = name.toLowerCase(); if (n.includes("corte")) return sum + 45; if (n.includes("barba")) return sum + 30; if (n.includes("sobrancelha") || n.includes("pigment")) return sum + 15; return sum + 30; }, 0)} min</span>
                         </TableCell>
-                        <TableCell className="text-green-500 font-medium">R$ {Number(a.total_price).toFixed(2)}</TableCell>
+                        <TableCell className="font-medium" style={{ color: primaryColor }}>R$ {Number(a.total_price).toFixed(2)}</TableCell>
                         <TableCell className="text-xs capitalize">{a.payment_method || "—"}</TableCell>
                         <TableCell>
                           <select
@@ -416,9 +417,9 @@ const Admin = () => {
                             className={cn(
                               "rounded-full px-2 py-1 text-xs font-medium border-0 cursor-pointer",
                               a.status === "confirmado" ? "bg-blue-500/20 text-blue-400" :
-                              a.status === "finalizado" ? "bg-green-500/20 text-green-400" :
-                              a.status === "cancelado" ? "bg-red-500/20 text-red-400" :
-                              "bg-yellow-500/20 text-yellow-400"
+                                a.status === "finalizado" ? "bg-green-500/20 text-green-400" :
+                                  a.status === "cancelado" ? "bg-red-500/20 text-red-400" :
+                                    "bg-yellow-500/20 text-yellow-400"
                             )}
                           >
                             <option value="pendente">pendente</option>
@@ -431,7 +432,7 @@ const Admin = () => {
                           <div className="flex gap-1">
                             {a.client_phone && a.client_phone !== "N/A" && (
                               <a href={`https://wa.me/${a.client_phone}?text=${encodeURIComponent(`Lembrete de agendamento Olá, ${a.client_name}! Passando para confirmar seu agendamento de 💇🏽‍♂️ ${a.service_names?.join(", ")} hoje às ${a.appointment_time.substring(0, 5)}⌚ -> 💈 𝕭𝖆𝖗𝖇𝖊𝖆𝖗𝖎𝖆 𝕯𝖔 𝕽𝖔𝖒𝖊𝖑💈. Te aguardamos!`)}`} target="_blank" rel="noopener noreferrer">
-                                <Button size="icon" variant="ghost" className="h-8 w-8"><MessageCircle className="h-4 w-4 text-green-500" /></Button>
+                                <Button size="icon" variant="ghost" className="h-8 w-8"><MessageCircle className="h-4 w-4" style={{ color: primaryColor }} /></Button>
                               </a>
                             )}
                             <Button size="icon" variant="ghost" className="h-8 w-8" onClick={() => openEditAppt(a)}><Edit2 className="h-4 w-4" /></Button>
@@ -517,7 +518,7 @@ const Admin = () => {
                         onCheckedChange={(c) => setQsServiceIds(prev => c ? [...prev, s.id] : prev.filter(id => id !== s.id))}
                       />
                       <span className="flex-1">{s.name}</span>
-                      <span className="text-green-500 text-sm font-medium">R$ {Number(s.price).toFixed(2)}</span>
+                      <span className="text-sm font-medium" style={{ color: primaryColor }}>R$ {Number(s.price).toFixed(2)}</span>
                     </label>
                   ))}
                 </div>
@@ -534,7 +535,7 @@ const Admin = () => {
                     <div key={i} className="flex items-center justify-between mt-2 text-sm">
                       <span>{s.name}</span>
                       <div className="flex items-center gap-2">
-                        <span className="text-green-500">R$ {s.price.toFixed(2)}</span>
+                        <span style={{ color: primaryColor }}>R$ {s.price.toFixed(2)}</span>
                         <Button size="icon" variant="ghost" className="h-6 w-6" onClick={() => setQsCustomServices(prev => prev.filter((_, j) => j !== i))}><Trash2 className="h-3 w-3 text-red-400" /></Button>
                       </div>
                     </div>
@@ -552,20 +553,20 @@ const Admin = () => {
                     {services?.filter(s => qsServiceIds.includes(s.id)).map(s => (
                       <div key={s.id} className="flex items-center justify-between text-sm">
                         <span>{s.name}</span>
-                        <span className="text-green-500">R$ {Number(s.price).toFixed(2)}</span>
+                        <span style={{ color: primaryColor }}>R$ {Number(s.price).toFixed(2)}</span>
                       </div>
                     ))}
                     {qsCustomServices.map((s, i) => (
                       <div key={`c${i}`} className="flex items-center justify-between text-sm">
                         <span>{s.name}</span>
-                        <span className="text-green-500">R$ {s.price.toFixed(2)}</span>
+                        <span style={{ color: primaryColor }}>R$ {s.price.toFixed(2)}</span>
                       </div>
                     ))}
                   </div>
                 )}
                 <div className="border-t border-border mt-4 pt-4 flex items-center justify-between text-lg font-bold">
                   <span>Total a Pagar</span>
-                  <span className="text-green-500">R$ {qsTotalPrice.toFixed(2)}</span>
+                  <span style={{ color: primaryColor }}>R$ {qsTotalPrice.toFixed(2)}</span>
                 </div>
               </div>
 
@@ -659,16 +660,16 @@ const Admin = () => {
                   <div key={s.id} className="flex flex-wrap items-center gap-4 rounded-lg border border-border bg-background p-4">
                     <div className="flex-1 min-w-[150px]">
                       <p className="font-semibold">{s.name}</p>
-                      <p className="text-sm text-green-500">R$ {Number(s.price).toFixed(2)}</p>
+                      <p className="text-sm" style={{ color: primaryColor }}>R$ {Number(s.price).toFixed(2)}</p>
                     </div>
                     <div className="flex items-center gap-2 text-sm">
                       <span className="text-muted-foreground">Duração:</span>
                       <select
                         value={s.duration}
                         onChange={(e) => updateServiceField(s.id, "duration", parseInt(e.target.value))}
-                        className="rounded border border-border bg-card px-2 py-1 text-sm text-green-500"
+                        className="rounded border border-border bg-card px-2 py-1 text-sm" style={{ color: primaryColor }}
                       >
-                        {[15,30,45,60,90,120].map(v => <option key={v} value={v}>{v} min</option>)}
+                        {[15, 30, 45, 60, 90, 120].map(v => <option key={v} value={v}>{v} min</option>)}
                       </select>
                     </div>
                     <div className="flex items-center gap-2 text-sm">
@@ -676,9 +677,9 @@ const Admin = () => {
                       <select
                         value={(s as any).interval_minutes || 0}
                         onChange={(e) => updateServiceField(s.id, "interval_minutes", parseInt(e.target.value))}
-                        className="rounded border border-border bg-card px-2 py-1 text-sm text-green-500"
+                        className="rounded border border-border bg-card px-2 py-1 text-sm" style={{ color: primaryColor }}
                       >
-                        {[0,5,10,15,30].map(v => <option key={v} value={v}>{v} min</option>)}
+                        {[0, 5, 10, 15, 30].map(v => <option key={v} value={v}>{v} min</option>)}
                       </select>
                     </div>
                     <div className="flex items-center gap-2">
@@ -726,7 +727,7 @@ const Admin = () => {
                     <div key={m.id} className="flex items-center justify-between rounded-lg border border-border bg-background p-4">
                       <div>
                         <p className="font-medium">{m.email}</p>
-                        <p className="text-xs text-green-500">Criado em {m.created_at ? format(new Date(m.created_at), "dd/MM/yyyy") : "—"}</p>
+                        <p className="text-xs" style={{ color: primaryColor }}>Criado em {m.created_at ? format(new Date(m.created_at), "dd/MM/yyyy") : "—"}</p>
                       </div>
                       <div className="flex items-center gap-2">
                         <Button size="sm" variant="outline" className="gap-1" onClick={() => { setPasswordDialog(m.id); setNewPwd(""); }}>
@@ -751,17 +752,17 @@ const Admin = () => {
                   <Palette className="h-5 w-5" /> Cores do Site
                 </h3>
                 <p className="text-sm text-muted-foreground mb-4">As cores serão aplicadas em todo o site (landing, agendamento, painel).</p>
-                <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
                   <div>
                     <label className="text-sm font-medium mb-1 block">Cor Principal (botões, destaques)</label>
                     <div className="flex items-center gap-3">
                       <input
                         type="color"
-                        value={settingsLocal.primary_color || "#166434"}
+                        value={settingsLocal.primary_color || "#d1b122"}
                         onChange={(e) => setSettingsLocal(prev => ({ ...prev, primary_color: e.target.value }))}
                         className="h-10 w-14 rounded border border-border cursor-pointer"
                       />
-                      <span className="text-sm text-muted-foreground">{settingsLocal.primary_color || "#166434"}</span>
+                      <span className="text-sm text-muted-foreground">{settingsLocal.primary_color || "#d1b122"}</span>
                     </div>
                   </div>
                   <div>
@@ -776,8 +777,20 @@ const Admin = () => {
                       <span className="text-sm text-muted-foreground">{settingsLocal.bg_color || "#000000"}</span>
                     </div>
                   </div>
+                  <div>
+                    <label className="text-sm font-medium mb-1 block">Cor de Informações (telefone, horário, local)</label>
+                    <div className="flex items-center gap-3">
+                      <input
+                        type="color"
+                        value={settingsLocal.info_color || "#d1b122"}
+                        onChange={(e) => setSettingsLocal(prev => ({ ...prev, info_color: e.target.value }))}
+                        className="h-10 w-14 rounded border border-border cursor-pointer"
+                      />
+                      <span className="text-sm text-muted-foreground">{settingsLocal.info_color || "#d1b122"}</span>
+                    </div>
+                  </div>
                 </div>
-                <Button className="mt-4" onClick={() => { saveSetting("primary_color"); saveSetting("bg_color"); }}>Salvar Cores</Button>
+                <Button className="mt-4" onClick={() => { saveSetting("primary_color"); saveSetting("bg_color"); saveSetting("info_color"); }}>Salvar Cores</Button>
               </div>
 
               {/* Background Image */}
@@ -903,7 +916,7 @@ const Admin = () => {
                   <Settings className="h-5 w-5" /> Configurações Globais
                 </h3>
                 <p className="text-sm text-muted-foreground">Altere o nome do estabelecimento e configurações de agendamento.</p>
-                
+
                 <div>
                   <label className="text-sm font-semibold mb-1 block">Nome do Estabelecimento</label>
                   <Input value={settingsLocal.business_name || ""} onChange={(e) => setSettingsLocal(prev => ({ ...prev, business_name: e.target.value }))} className="bg-background" />
@@ -965,7 +978,7 @@ const Admin = () => {
                       onCheckedChange={(c) => setEditServiceIds(prev => c ? [...prev, s.id] : prev.filter(id => id !== s.id))}
                     />
                     <span className="flex-1">{s.name}</span>
-                    <span className="text-green-500 text-sm">R$ {Number(s.price).toFixed(2)}</span>
+                    <span className="text-sm" style={{ color: primaryColor }}>R$ {Number(s.price).toFixed(2)}</span>
                   </label>
                 ))}
               </div>
@@ -974,15 +987,15 @@ const Admin = () => {
             <div>
               <label className="text-sm font-medium mb-2 block">Serviço customizado</label>
               <div className="flex gap-2">
-                <Input value={customServiceName} onChange={(e) => setCustomServiceName(e.target.value)} placeholder="Nome do serviço" className="flex-1" />
-                <Input value={customServicePrice} onChange={(e) => setCustomServicePrice(e.target.value)} placeholder="Valor" type="number" className="w-24" />
+                <Input value={customServiceName} onChange={(e) => setCustomServiceName(e.target.value)} placeholder="Nome do serviço" className="flex-1 bg-zinc-800 text-white border-border" style={{ color: 'white' }} />
+                <Input value={customServicePrice} onChange={(e) => setCustomServicePrice(e.target.value)} placeholder="Valor" type="number" className="w-24 bg-zinc-800 text-white border-border" style={{ color: 'white' }} />
                 <Button size="icon" variant="outline" onClick={addCustomService}><Plus className="h-4 w-4" /></Button>
               </div>
               {customServices.map((s, i) => (
                 <div key={i} className="flex items-center justify-between mt-2 text-sm border border-border rounded p-2">
                   <span>{s.name}</span>
                   <div className="flex items-center gap-2">
-                    <span className="text-green-500">R$ {s.price.toFixed(2)}</span>
+                    <span style={{ color: primaryColor }}>R$ {s.price.toFixed(2)}</span>
                     <Button size="icon" variant="ghost" className="h-6 w-6" onClick={() => setCustomServices(prev => prev.filter((_, j) => j !== i))}>
                       <Trash2 className="h-3 w-3 text-red-400" />
                     </Button>
@@ -1005,10 +1018,10 @@ const Admin = () => {
 
             <div className="flex items-center justify-between text-lg font-bold">
               <span>Novo Total:</span>
-              <span className="text-green-500">R$ {editNewTotal.toFixed(2)}</span>
+              <span style={{ color: primaryColor }}>R$ {editNewTotal.toFixed(2)}</span>
             </div>
 
-            <Button onClick={saveEditAppt} className="w-full bg-green-600 hover:bg-green-700">Salvar Alterações</Button>
+            <Button onClick={saveEditAppt} className="w-full text-black" style={{ backgroundColor: primaryColor }}>Salvar Alterações</Button>
           </div>
         </DialogContent>
       </Dialog>
@@ -1028,10 +1041,19 @@ const Admin = () => {
       <Dialog open={serviceDialog} onOpenChange={setServiceDialog}>
         <DialogContent className="dark">
           <DialogHeader><DialogTitle>{editService ? "Editar Serviço" : "Novo Serviço"}</DialogTitle></DialogHeader>
-          <div className="space-y-3">
-            <Input placeholder="Nome" value={sName} onChange={(e) => setSName(e.target.value)} className="bg-zinc-800 text-white border-border focus:border-yellow-500" />
-            <Input placeholder="Preço" type="number" value={sPrice} onChange={(e) => setSPrice(e.target.value)} className="bg-zinc-800 text-white border-border focus:border-yellow-500" />
-            <Input placeholder="Duração (min)" type="number" value={sDuration} onChange={(e) => setSDuration(e.target.value)} className="bg-zinc-800 text-white border-border focus:border-yellow-500" />
+          <div className="space-y-4">
+            <div>
+              <label className="text-sm font-medium text-foreground mb-1 block">Nome</label>
+              <Input placeholder="Ex: Corte Degradê" value={sName} onChange={(e) => setSName(e.target.value)} className="bg-zinc-800 text-white border-border focus:border-yellow-500" style={{ color: 'white' }} />
+            </div>
+            <div>
+              <label className="text-sm font-medium text-foreground mb-1 block">Preço (R$)</label>
+              <Input placeholder="Ex: 45.00" type="number" value={sPrice} onChange={(e) => setSPrice(e.target.value)} className="bg-zinc-800 text-white border-border focus:border-yellow-500" style={{ color: 'white' }} />
+            </div>
+            <div>
+              <label className="text-sm font-medium text-foreground mb-1 block">Duração (minutos)</label>
+              <Input placeholder="Ex: 45" type="number" value={sDuration} onChange={(e) => setSDuration(e.target.value)} className="bg-zinc-800 text-white border-border focus:border-yellow-500" style={{ color: 'white' }} />
+            </div>
             <Button onClick={saveService} className="w-full">Salvar</Button>
           </div>
         </DialogContent>
