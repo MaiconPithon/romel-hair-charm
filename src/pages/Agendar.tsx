@@ -15,7 +15,7 @@ import { WhatsAppButton } from "@/components/WhatsAppButton";
 import { cn } from "@/lib/utils";
 import { format, addDays, getDay, startOfWeek, endOfWeek } from "date-fns";
 import { ptBR } from "date-fns/locale";
-import { ArrowLeft, Check, ChevronRight, MessageCircle, Clock, Copy } from "lucide-react";
+import { ArrowLeft, Check, ChevronRight, MessageCircle, Clock, Copy, X } from "lucide-react";
 import { toast } from "sonner";
 import { QRCodeSVG } from "qrcode.react";
 import romelBg from "@/assets/romel-bg.jpg";
@@ -72,12 +72,24 @@ const Agendar = () => {
     const lunchStart = config.lunch_start ? (() => { const [h, m] = config.lunch_start!.split(":").map(Number); return h * 60 + m; })() : null;
     const lunchEnd = config.lunch_end ? (() => { const [h, m] = config.lunch_end!.split(":").map(Number); return h * 60 + m; })() : null;
 
-    const slotStep = 45;
+    // Use the configured interval from services, or fallback to totalDuration
+    // slotStep = totalDuration so slots align exactly to service duration (no ghost gaps)
+    const slotStep = totalDuration > 0 ? totalDuration : 30;
 
     const now = new Date();
     const ds = format(selectedDate, "yyyy-MM-dd");
     const todayStr = format(now, "yyyy-MM-dd");
     const nowMin = now.getHours() * 60 + now.getMinutes();
+
+    // Collect occupied intervals from existing appointments
+    const occupiedIntervals = (dayAppointments || [])
+      .filter((a) => a.status !== "cancelado")
+      .map((a) => {
+        const [ah, am] = a.appointment_time.split(":").map(Number);
+        const aStart = ah * 60 + am;
+        const aDuration = a.total_duration || 30;
+        return { start: aStart, end: aStart + aDuration };
+      });
 
     const slots: SlotInfo[] = [];
     for (let m = openMin; m + totalDuration <= closeMin; m += slotStep) {
@@ -108,15 +120,10 @@ const Agendar = () => {
         continue;
       }
 
-      // Overlap with existing appointments (duration-aware)
-      const isOccupied = dayAppointments?.some((a) => {
-        if (a.status === "cancelado") return false;
-        const [ah, am] = a.appointment_time.split(":").map(Number);
-        const aStart = ah * 60 + am;
-        const aDuration = a.total_duration || 30;
-        const aEnd = aStart + aDuration;
-        const newEnd = m + totalDuration;
-        return m < aEnd && newEnd > aStart;
+      // Overlap with existing appointments - exact duration, no extra buffer unless configured
+      const newEnd = m + totalDuration;
+      const isOccupied = occupiedIntervals.some((occ) => {
+        return m < occ.end && newEnd > occ.start;
       });
       if (isOccupied) {
         slots.push({ time, available: false, reason: "occupied" });
@@ -252,9 +259,19 @@ const Agendar = () => {
         <div className="px-4 mt-4 mb-4">
           <h2 className="text-primary text-lg font-semibold" style={{ fontFamily: 'Inter, sans-serif' }}>{stepTitles[step]}</h2>
           {step === "time" && selectedDate && (
-            <p className="text-sm text-muted-foreground">
-              {format(selectedDate, "dd 'de' MMMM", { locale: ptBR })} — {totalDuration} min necessários
-            </p>
+            <div className="flex items-center justify-between">
+              <p className="text-sm text-muted-foreground">
+                {format(selectedDate, "dd 'de' MMMM", { locale: ptBR })} — {totalDuration} min necessários
+              </p>
+              {selectedTime && (
+                <button
+                  onClick={() => setSelectedTime("")}
+                  className="flex items-center gap-1 text-xs text-muted-foreground hover:text-foreground transition-colors border border-border rounded-md px-2 py-1"
+                >
+                  <X className="h-3 w-3" /> Limpar
+                </button>
+              )}
+            </div>
           )}
         </div>
 
@@ -321,34 +338,85 @@ const Agendar = () => {
             </div>
           )}
 
-          {/* Step: Time */}
+          {/* Step: Time - Vertical Timeline */}
           {step === "time" && (
-            <div className="grid grid-cols-3 gap-2">
+            <div className="relative">
               {slots.length === 0 && (
-                <p className="col-span-3 text-center text-muted-foreground py-8">
+                <p className="text-center text-muted-foreground py-8">
                   {selectedDate && format(selectedDate, "yyyy-MM-dd") === format(new Date(), "yyyy-MM-dd")
                     ? "Não há mais horários disponíveis para hoje"
                     : "Nenhum horário disponível"}
                 </p>
               )}
-              {slots.map((slot) => (
-                <button
-                  key={slot.time}
-                  onClick={() => slot.available && setSelectedTime(slot.time)}
-                  disabled={!slot.available}
-                  className={cn(
-                    "rounded-lg border py-3 text-center font-medium transition-colors",
-                    !slot.available
-                      ? "border-border bg-card/30 opacity-40 line-through pointer-events-none cursor-not-allowed text-muted-foreground"
-                      : selectedTime === slot.time
-                        ? "border-2 text-white"
-                        : "border-border bg-card/60"
-                  )}
-                  style={slot.available && selectedTime === slot.time ? { borderColor: primaryColor, backgroundColor: primaryColor } : undefined}
-                >
-                  {slot.time}
-                </button>
-              ))}
+              {slots.length > 0 && (
+                <div className="relative ml-4">
+                  {/* Vertical line */}
+                  <div className="absolute left-[7px] top-0 bottom-0 w-0.5 bg-border" />
+                  
+                  <div className="space-y-1">
+                    {slots.map((slot) => {
+                      const isSelected = slot.available && selectedTime === slot.time;
+                      const serviceNames = chosen.map((s) => s.name).join(" + ");
+                      // Calculate height based on duration (1min = 1.5px approx)
+                      const blockHeight = Math.max(totalDuration * 1.2, 48);
+
+                      return (
+                        <div key={slot.time} className="relative flex items-start gap-3">
+                          {/* Timeline dot */}
+                          <div
+                            className={cn(
+                              "relative z-10 mt-3 h-4 w-4 rounded-full border-2 shrink-0 transition-colors",
+                              !slot.available
+                                ? "border-muted-foreground/30 bg-muted/30"
+                                : isSelected
+                                  ? "border-transparent"
+                                  : "border-border bg-background"
+                            )}
+                            style={isSelected ? { borderColor: primaryColor, backgroundColor: primaryColor } : undefined}
+                          />
+
+                          {/* Slot block */}
+                          <button
+                            onClick={() => slot.available && setSelectedTime(slot.time)}
+                            disabled={!slot.available}
+                            className={cn(
+                              "flex-1 rounded-lg border transition-all text-left",
+                              !slot.available
+                                ? "border-border bg-card/20 opacity-40 cursor-not-allowed"
+                                : isSelected
+                                  ? "border-2"
+                                  : "border-border bg-card/60 hover:border-muted-foreground"
+                            )}
+                            style={{
+                              minHeight: isSelected ? `${blockHeight}px` : '44px',
+                              ...(isSelected ? { borderColor: primaryColor, backgroundColor: primaryColor } : {}),
+                            }}
+                          >
+                            <div className="flex flex-col justify-center h-full pl-3 py-2">
+                              {isSelected ? (
+                                <>
+                                  <span className="font-bold text-xs text-black">{serviceNames}</span>
+                                  <span className="font-bold text-[11px] text-black/80">{slot.time} — {totalDuration} min</span>
+                                </>
+                              ) : (
+                                <span className={cn(
+                                  "font-medium text-sm",
+                                  !slot.available ? "line-through text-muted-foreground" : ""
+                                )}>
+                                  {slot.time}
+                                  {!slot.available && slot.reason === "occupied" && (
+                                    <span className="ml-2 text-xs text-muted-foreground/60">Ocupado</span>
+                                  )}
+                                </span>
+                              )}
+                            </div>
+                          </button>
+                        </div>
+                      );
+                    })}
+                  </div>
+                </div>
+              )}
             </div>
           )}
 
