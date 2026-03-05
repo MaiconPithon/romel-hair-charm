@@ -72,9 +72,8 @@ const Agendar = () => {
     const lunchStart = config.lunch_start ? (() => { const [h, m] = config.lunch_start!.split(":").map(Number); return h * 60 + m; })() : null;
     const lunchEnd = config.lunch_end ? (() => { const [h, m] = config.lunch_end!.split(":").map(Number); return h * 60 + m; })() : null;
 
-    // Use the configured interval from services, or fallback to totalDuration
-    // slotStep = totalDuration so slots align exactly to service duration (no ghost gaps)
-    const slotStep = totalDuration > 0 ? totalDuration : 30;
+    // Fixed 15-min slot step for fine-grained timeline (no ghost gaps)
+    const slotStep = 15;
 
     const now = new Date();
     const ds = format(selectedDate, "yyyy-MM-dd");
@@ -353,19 +352,25 @@ const Agendar = () => {
                   {/* Vertical line */}
                   <div className="absolute left-[7px] top-0 bottom-0 w-0.5 bg-border" />
                   
-                  <div className="space-y-1">
+                  <div className="space-y-0.5">
                     {slots.map((slot) => {
                       const isSelected = slot.available && selectedTime === slot.time;
                       const serviceNames = chosen.map((s) => s.name).join(" + ");
-                      // Calculate height based on duration (1min = 1.5px approx)
-                      const blockHeight = Math.max(totalDuration * 1.2, 48);
+                      // Compute end time for selected block
+                      const [sh, sm] = slot.time.split(":").map(Number);
+                      const endMinTotal = sh * 60 + sm + totalDuration;
+                      const endH = String(Math.floor(endMinTotal / 60)).padStart(2, "0");
+                      const endM = String(endMinTotal % 60).padStart(2, "0");
+                      const endTime = `${endH}:${endM}`;
+                      // Height proportional to duration for selected block
+                      const blockHeight = Math.max(totalDuration * 2, 52);
 
                       return (
                         <div key={slot.time} className="relative flex items-start gap-3">
                           {/* Timeline dot */}
                           <div
                             className={cn(
-                              "relative z-10 mt-3 h-4 w-4 rounded-full border-2 shrink-0 transition-colors",
+                              "relative z-10 mt-3 h-3.5 w-3.5 rounded-full border-2 shrink-0 transition-colors",
                               !slot.available
                                 ? "border-muted-foreground/30 bg-muted/30"
                                 : isSelected
@@ -388,24 +393,28 @@ const Agendar = () => {
                                   : "border-border bg-card/60 hover:border-muted-foreground"
                             )}
                             style={{
-                              minHeight: isSelected ? `${blockHeight}px` : '44px',
+                              minHeight: isSelected ? `${blockHeight}px` : '36px',
                               ...(isSelected ? { borderColor: primaryColor, backgroundColor: primaryColor } : {}),
                             }}
                           >
-                            <div className="flex flex-col justify-center h-full pl-3 py-2">
+                            <div className="flex flex-col justify-center h-full pl-2 py-1.5">
                               {isSelected ? (
                                 <>
-                                  <span className="font-bold text-xs text-black">{serviceNames}</span>
-                                  <span className="font-bold text-[11px] text-black/80">{slot.time} — {totalDuration} min</span>
+                                  <span className="font-bold text-xs" style={{ color: '#000000' }}>{serviceNames}</span>
+                                  <span className="font-bold text-[11px]" style={{ color: '#000000cc' }}>{slot.time} até {endTime}</span>
                                 </>
                               ) : (
                                 <span className={cn(
-                                  "font-medium text-sm",
+                                  "font-medium text-sm flex items-center gap-1.5",
                                   !slot.available ? "line-through text-muted-foreground" : ""
                                 )}>
+                                  <Clock className="h-3 w-3 opacity-50" />
                                   {slot.time}
+                                  {!slot.available && slot.reason === "lunch" && (
+                                    <span className="ml-1 text-xs text-muted-foreground/60">— Pausa / Almoço</span>
+                                  )}
                                   {!slot.available && slot.reason === "occupied" && (
-                                    <span className="ml-2 text-xs text-muted-foreground/60">Ocupado</span>
+                                    <span className="ml-1 text-xs text-muted-foreground/60">Ocupado</span>
                                   )}
                                 </span>
                               )}
