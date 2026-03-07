@@ -137,13 +137,15 @@ const Agendar = () => {
 
   const isDateDisabled = (date: Date) => {
     const today = new Date(new Date().toDateString());
-    if (date < today) return true;
-    const weekStart = startOfWeek(today, { weekStartsOn: 0 });
-    const weekEnd = endOfWeek(today, { weekStartsOn: 0 });
-    if (date < weekStart || date > weekEnd) return true;
+    const sevenDaysFromNow = addDays(today, 7);
+
+    // Disable if date is in the past or beyond 7 days from today
+    if (date < today || date > sevenDaysFromNow) return true;
+
     const dow = getDay(date);
     const config = schedule?.find((c) => c.day_of_week === dow);
     if (!config || !config.is_open) return true;
+
     const ds = format(date, "yyyy-MM-dd");
     return !!blocked?.some((b) => b.blocked_date === ds && b.all_day);
   };
@@ -326,14 +328,25 @@ const Agendar = () => {
 
           {/* Step: Date */}
           {step === "date" && (
-            <div className="flex justify-center">
+            <div className="space-y-6 animate-in fade-in slide-in-from-bottom-4 duration-500">
+              <div className="flex flex-col items-center gap-2 mb-2">
+                <div className="flex items-center gap-2 px-3 py-1 rounded-full bg-[#D1B122]/10 border border-[#D1B122]/20">
+                  <span className="text-[10px] font-black text-[#D1B122] uppercase tracking-widest">Atenção</span>
+                </div>
+                <p className="text-xs font-bold text-white/40 uppercase tracking-tighter">Agenda liberada apenas para os próximos 7 dias</p>
+              </div>
               <Calendar
                 mode="single"
                 selected={selectedDate}
-                onSelect={setSelectedDate}
+                onSelect={(date) => {
+                  setSelectedDate(date);
+                  setStep("time");
+                }}
                 disabled={isDateDisabled}
+                fromDate={new Date()}
+                toDate={addDays(new Date(), 7)}
+                className="rounded-2xl border border-white/5 bg-black/40 backdrop-blur-xl p-4 shadow-2xl"
                 locale={ptBR}
-                className="pointer-events-auto rounded-lg border border-border bg-card p-3 text-foreground [&_button]:text-foreground [&_.rdp-day_disabled]:text-muted-foreground/40 [&_.rdp-head_cell]:text-muted-foreground [&_.rdp-caption]:text-foreground"
               />
             </div>
           )}
@@ -352,11 +365,6 @@ const Agendar = () => {
                 <div className="relative ml-4">
                   {/* Vertical line */}
                   <div className="absolute left-[7px] top-0 bottom-0 w-0.5 bg-border" />
-<<<<<<< Updated upstream
-                  
-=======
-
->>>>>>> Stashed changes
                   <div className="space-y-0.5">
                     {slots.map((slot) => {
                       const isSelected = slot.available && selectedTime === slot.time;

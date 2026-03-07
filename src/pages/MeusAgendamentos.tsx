@@ -1,4 +1,5 @@
 import { useState } from "react";
+import { useQueryClient } from "@tanstack/react-query";
 import { useNavigate, Link } from "react-router-dom";
 import { supabase } from "@/integrations/supabase/client";
 import { useBusinessSettings } from "@/hooks/useBusinessSettings";
@@ -34,6 +35,8 @@ const MeusAgendamentos = () => {
     const [appointments, setAppointments] = useState<any[]>([]);
     const [searched, setSearched] = useState(false);
     const [loadingId, setLoadingId] = useState<string | null>(null);
+
+    const queryClient = useQueryClient();
 
     const searchAppointments = async () => {
         if (!phone.trim() || phone.trim().length < 8) {
@@ -98,6 +101,10 @@ const MeusAgendamentos = () => {
                 .update({ status: "cancelado" })
                 .eq("id", appt.id);
             if (error) throw error;
+
+            // Invalidate queries to ensure instant slot release in the booking flow
+            queryClient.invalidateQueries({ queryKey: ["appointments"] });
+
             setAppointments(prev => prev.filter(a => a.id !== appt.id));
             toast.success("Agendamento cancelado! O horário foi liberado.");
         } catch {
@@ -120,6 +127,10 @@ const MeusAgendamentos = () => {
                 .update({ status: "cancelado" })
                 .eq("id", appt.id);
             if (error) throw error;
+
+            // Invalidate queries
+            queryClient.invalidateQueries({ queryKey: ["appointments"] });
+
             const params = new URLSearchParams({
                 nome: appt.client_name || "",
                 telefone: appt.client_phone || "",
@@ -132,88 +143,77 @@ const MeusAgendamentos = () => {
     };
 
     const statusLabel: Record<string, { label: string; color: string }> = {
-        pendente: { label: "Pendente", color: "bg-yellow-500/20 text-yellow-400" },
-        confirmado: { label: "Confirmado", color: "bg-blue-500/20 text-blue-400" },
-        finalizado: { label: "Finalizado", color: "bg-green-500/20 text-green-400" },
-        plano: { label: "Plano", color: "bg-purple-500/20 text-purple-400" },
+        pendente: { label: "PENDENTE", color: "text-[#D1B122] font-black uppercase" },
+        confirmado: { label: "CONFIRMADO", color: "text-blue-400 font-black uppercase" },
+        finalizado: { label: "FINALIZADO", color: "text-green-400 font-black uppercase" },
+        plano: { label: "PLANO", color: "text-purple-400 font-black uppercase" },
     };
 
     return (
-        <div className="dark min-h-screen bg-background text-foreground">
+        <div className="dark min-h-screen bg-black text-foreground">
             {/* Header */}
-            <header className="flex items-center gap-3 border-b border-border px-4 py-4">
+            <header className="flex items-center gap-3 border-b border-white/5 px-4 py-6 bg-black/50 backdrop-blur-md sticky top-0 z-50">
                 <button
                     onClick={() => navigate("/")}
-                    className="flex items-center gap-1.5 text-sm text-muted-foreground hover:text-foreground transition-colors"
+                    className="flex items-center gap-1.5 text-xs text-white/40 hover:text-white/60 transition-colors uppercase font-bold tracking-widest"
                 >
-                    <ArrowLeft className="h-4 w-4" />
-                    <span>Início</span>
+                    <ArrowLeft className="h-3.5 w-3.5" />
+                    <span>Voltar</span>
                 </button>
-                <div className="flex-1" />
-                <div>
-                    <h1 className="text-xl font-black text-primary" style={{ fontFamily: "Playfair Display, serif" }}>
-                        Meus Agendamentos
-                    </h1>
-                    <p className="text-xs text-muted-foreground text-right">Barbearia do Romel</p>
-                </div>
             </header>
 
-            <div className="mx-auto max-w-2xl px-4 py-8 space-y-6">
+            <div className="mx-auto max-w-xl px-4 py-8 space-y-8">
                 {/* Search card */}
-                <div className="rounded-xl border border-border bg-card p-6 space-y-4">
-                    <div>
-                        <h2 className="text-base font-bold mb-1">Encontre seu agendamento</h2>
-                        <p className="text-sm text-muted-foreground">
-                            Digite o número de telefone usado no agendamento para localizar seus horários ativos.
-                        </p>
+                <div className="space-y-6">
+                    <div className="flex items-center justify-between">
+                        <h2 className="text-lg font-black text-white tracking-tight">Consultar agendamentos por telefone</h2>
+                        <button onClick={() => navigate("/")} className="text-white/40 hover:text-white/60 transition-colors">
+                            <X className="h-5 w-5" />
+                        </button>
                     </div>
+
                     <div className="flex gap-2">
-                        <Input
-                            type="tel"
-                            value={phone}
-                            onChange={(e) => setPhone(e.target.value)}
-                            onKeyDown={(e) => e.key === "Enter" && searchAppointments()}
-                            placeholder="71999999999"
-                            className="bg-background border-border text-foreground flex-1"
-                        />
+                        <div className="relative flex-1">
+                            <Input
+                                type="tel"
+                                value={phone}
+                                onChange={(e) => setPhone(e.target.value)}
+                                onKeyDown={(e) => e.key === "Enter" && searchAppointments()}
+                                placeholder="(71) 99999-9999"
+                                className="h-12 bg-[#0A0A0A] border-[1.5px] border-[#D1B122] text-white rounded-lg px-4 focus-visible:ring-0 focus-visible:border-[#D1B122] placeholder:text-white/20 font-medium"
+                            />
+                        </div>
                         <Button
                             onClick={searchAppointments}
                             disabled={searching}
-                            style={{ backgroundColor: primaryColor, color: "#000" }}
-                            className="font-bold gap-2"
+                            className="h-12 px-8 bg-[#D1B122] hover:bg-[#B19112] text-black font-black uppercase tracking-wider rounded-lg transition-all"
                         >
-                            <Search className="h-4 w-4" />
-                            {searching ? "Buscando..." : "Buscar"}
+                            {searching ? "..." : "Buscar"}
                         </Button>
                     </div>
+
+                    <p className="text-center text-[11px] text-white/30 font-medium tracking-wide">
+                        Problemas? Fale pelo WhatsApp com a barbearia.
+                    </p>
                 </div>
 
                 {/* Cancellation rule notice */}
-                <div className="flex items-start gap-2 rounded-lg border border-amber-500/30 bg-amber-500/10 px-4 py-3">
-                    <AlertTriangle className="h-4 w-4 text-amber-400 shrink-0 mt-0.5" />
-                    <p className="text-xs text-amber-300">
-                        Cancelamentos e reagendamentos só são permitidos com pelo menos{" "}
-                        <strong>{formatLimitLabel(cancelMinutesLimit)} de antecedência</strong>.
-                        {" "}Uma margem de {GRACE_PERIOD_MINUTES} minutos é concedida para erros imediatos após o agendamento.
+                {/* (Kept minimal as per image focus, but could be hidden or restyled) */}
+                <div className="rounded-lg border border-white/5 bg-white/[0.02] px-4 py-3 text-center">
+                    <p className="text-[10px] text-white/30 uppercase font-black tracking-[0.15em]">
+                        Cancelamento permitido com {formatLimitLabel(cancelMinutesLimit)} de antecedência
                     </p>
                 </div>
 
                 {/* Results */}
                 {searched && (
-                    <div className="space-y-3">
-                        <h3 className="text-sm font-semibold text-muted-foreground uppercase tracking-wider">
-                            {appointments.length > 0
-                                ? `${appointments.length} agendamento(s) encontrado(s)`
-                                : "Nenhum agendamento ativo encontrado"}
-                        </h3>
-
+                    <div className="space-y-4 animate-in fade-in slide-in-from-bottom-2 duration-500">
                         {appointments.length === 0 && (
-                            <div className="rounded-xl border border-border bg-card p-8 text-center">
-                                <p className="text-muted-foreground">Nenhum agendamento futuro encontrado para este número.</p>
-                                <p className="text-xs text-muted-foreground mt-2">Verifique se digitou o número corretamente.</p>
-                                <Link to="/agendar">
-                                    <Button className="mt-4 font-bold" style={{ backgroundColor: primaryColor, color: "#000" }}>
-                                        Fazer um novo agendamento
+                            <div className="rounded-2xl border border-white/5 bg-[#0A0A0A] p-12 text-center space-y-4 shadow-2xl">
+                                <p className="text-white/50 text-sm font-medium">Nenhum agendamento ativo encontrado.</p>
+                                <Link to="/agendar" className="inline-block">
+                                    <Button className="bg-[#D1B122] text-black font-black uppercase text-xs tracking-widest px-8">
+                                        Novo Agendamento
                                     </Button>
                                 </Link>
                             </div>
@@ -221,75 +221,48 @@ const MeusAgendamentos = () => {
 
                         {appointments.map((appt) => {
                             const cancelCheck = canCancel(appt);
-                            const status = statusLabel[appt.status] || { label: appt.status, color: "bg-zinc-500/20 text-zinc-400" };
+                            const status = statusLabel[appt.status] || { label: appt.status.toUpperCase(), color: "text-white/40" };
                             const isLoading = loadingId === appt.id;
 
                             return (
-                                <div key={appt.id} className="rounded-xl border border-border bg-card overflow-hidden">
-                                    {/* Card header */}
-                                    <div className="flex items-center justify-between px-5 pt-5 pb-3">
-                                        <div>
-                                            <p className="font-bold text-base">{appt.client_name}</p>
-                                            <p className="text-xs text-muted-foreground">{appt.client_phone}</p>
-                                        </div>
-                                        <span className={`rounded-full px-3 py-1 text-xs font-semibold ${status.color}`}>
-                                            {status.label}
-                                        </span>
-                                    </div>
-
-                                    {/* Divider */}
-                                    <div className="border-t border-border mx-5" />
-
-                                    {/* Details */}
-                                    <div className="px-5 py-4 space-y-2 text-sm">
-                                        <div className="flex items-center gap-2 text-muted-foreground">
-                                            <Calendar className="h-4 w-4 shrink-0" style={{ color: primaryColor }} />
-                                            <span className="text-foreground font-medium">
-                                                {format(parseISO(appt.appointment_date), "EEEE, dd 'de' MMMM", { locale: ptBR })}
-                                            </span>
-                                        </div>
-                                        <div className="flex items-center gap-2 text-muted-foreground">
-                                            <Clock className="h-4 w-4 shrink-0" style={{ color: primaryColor }} />
-                                            <span className="text-foreground font-medium">
-                                                {appt.appointment_time.substring(0, 5)}
-                                            </span>
-                                        </div>
-                                        <div className="rounded-lg bg-background/60 px-3 py-2 mt-2">
-                                            <p className="font-semibold">{appt.service_names?.join(" + ")}</p>
-                                            <p className="text-xs text-muted-foreground mt-0.5">{appt.total_duration} min</p>
-                                        </div>
-                                    </div>
-
-                                    {/* Action buttons */}
-                                    {!cancelCheck.allowed ? (
-                                        <div className="px-5 pb-4">
-                                            <div className="flex items-center gap-2 rounded-lg border border-red-500/30 bg-red-500/10 px-3 py-2">
-                                                <AlertTriangle className="h-3.5 w-3.5 text-red-400 shrink-0" />
-                                                <p className="text-xs text-red-300">{cancelCheck.reason}</p>
+                                <div key={appt.id} className="rounded-2xl border border-white/5 bg-[#0A0A0A] p-6 shadow-2xl transition-all hover:border-white/10 group">
+                                    <div className="flex items-start justify-between mb-4">
+                                        <div className="space-y-1">
+                                            <h4 className="text-lg font-black text-white tracking-tight uppercase">{appt.client_name}</h4>
+                                            <div className="flex flex-col gap-0.5 text-white/50 font-medium text-[13px]">
+                                                <span>{format(parseISO(appt.appointment_date), "dd/MM/yyyy")} · {appt.appointment_time.substring(0, 5)}</span>
+                                                <span className="text-white/30">{appt.service_names?.join(" + ")}</span>
+                                            </div>
+                                            <div className="pt-2">
+                                                <span className="text-[#D1B122] font-black text-base tracking-tighter">
+                                                    R$ {Number(appt.total_price).toFixed(2).replace('.', ',')}
+                                                </span>
                                             </div>
                                         </div>
-                                    ) : (
-                                        <div className="flex gap-2 px-5 pb-5">
-                                            <Button
-                                                variant="outline"
-                                                size="sm"
-                                                className="flex-1 border-red-500/50 text-red-400 hover:bg-red-500/10 hover:text-red-300 gap-1.5"
-                                                disabled={isLoading}
-                                                onClick={() => handleCancel(appt)}
-                                            >
-                                                <X className="h-3.5 w-3.5" />
-                                                {isLoading ? "Cancelando..." : "Cancelar"}
-                                            </Button>
-                                            <Button
-                                                size="sm"
-                                                className="flex-1 gap-1.5 font-bold"
-                                                style={{ backgroundColor: primaryColor, color: "#000" }}
-                                                disabled={isLoading}
-                                                onClick={() => handleReschedule(appt)}
-                                            >
-                                                <RefreshCw className="h-3.5 w-3.5" />
-                                                {isLoading ? "Aguarde..." : "Reagendar"}
-                                            </Button>
+                                        <div className="flex flex-col items-end gap-6">
+                                            <span className={`text-[11px] tracking-[0.1em] ${status.color}`}>
+                                                {status.label}
+                                            </span>
+
+                                            {cancelCheck.allowed && (
+                                                <Button
+                                                    variant="outline"
+                                                    size="sm"
+                                                    disabled={isLoading}
+                                                    onClick={() => handleCancel(appt)}
+                                                    className="h-9 px-6 border-red-500/30 bg-red-500/5 text-red-500 hover:bg-red-500 hover:text-white text-[11px] font-black uppercase tracking-widest rounded-lg transition-all"
+                                                >
+                                                    {isLoading ? "..." : "Cancelar"}
+                                                </Button>
+                                            )}
+                                        </div>
+                                    </div>
+
+                                    {!cancelCheck.allowed && (
+                                        <div className="mt-4 pt-4 border-t border-white/5">
+                                            <p className="text-[10px] text-red-500/60 uppercase font-black tracking-widest leading-relaxed">
+                                                {cancelCheck.reason}
+                                            </p>
                                         </div>
                                     )}
                                 </div>
@@ -299,11 +272,9 @@ const MeusAgendamentos = () => {
                 )}
 
                 {/* Footer link */}
-                <div className="text-center pt-4">
-                    <Link to="/agendar">
-                        <Button variant="outline" className="gap-2">
-                            Fazer novo agendamento
-                        </Button>
+                <div className="text-center pt-8">
+                    <Link to="/agendar" className="text-[11px] text-white/20 hover:text-[#D1B122] transition-colors uppercase font-black tracking-[0.2em]">
+                        Fazer novo agendamento
                     </Link>
                 </div>
             </div>
