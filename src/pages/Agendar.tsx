@@ -1,5 +1,5 @@
-import { useState } from "react";
-import { useNavigate } from "react-router-dom";
+import { useState, useEffect } from "react";
+import { useNavigate, useSearchParams, Link } from "react-router-dom";
 import { useServices } from "@/hooks/useServices";
 import { useScheduleConfig } from "@/hooks/useScheduleConfig";
 import { useBlockedSlots } from "@/hooks/useBlockedSlots";
@@ -27,6 +27,7 @@ const STEPS: Step[] = ["service", "date", "time", "info", "payment", "confirm"];
 
 const Agendar = () => {
   const navigate = useNavigate();
+  const [searchParams] = useSearchParams();
   const { data: services } = useServices();
   const { data: schedule } = useScheduleConfig();
   const { data: blocked } = useBlockedSlots();
@@ -36,8 +37,8 @@ const Agendar = () => {
   const [selectedServices, setSelectedServices] = useState<string[]>([]);
   const [selectedDate, setSelectedDate] = useState<Date | undefined>();
   const [selectedTime, setSelectedTime] = useState("");
-  const [clientName, setClientName] = useState("");
-  const [clientPhone, setClientPhone] = useState("");
+  const [clientName, setClientName] = useState(() => searchParams.get("nome") || "");
+  const [clientPhone, setClientPhone] = useState(() => searchParams.get("telefone") || "");
   const [paymentMethod, setPaymentMethod] = useState<"pix" | "dinheiro">("pix");
   const [rating, setRating] = useState(0);
   const [saving, setSaving] = useState(false);
@@ -351,7 +352,11 @@ const Agendar = () => {
                 <div className="relative ml-4">
                   {/* Vertical line */}
                   <div className="absolute left-[7px] top-0 bottom-0 w-0.5 bg-border" />
+<<<<<<< Updated upstream
                   
+=======
+
+>>>>>>> Stashed changes
                   <div className="space-y-0.5">
                     {slots.map((slot) => {
                       const isSelected = slot.available && selectedTime === slot.time;
@@ -555,6 +560,13 @@ const Agendar = () => {
               >
                 Voltar ao início
               </button>
+              <Link
+                to="/meus-agendamentos"
+                className="w-full block text-center rounded-lg border py-3 text-sm font-medium hover:bg-card/60 transition-colors text-muted-foreground hover:text-foreground"
+                style={{ borderColor: `${primaryColor}40` }}
+              >
+                Gerenciar meu agendamento
+              </Link>
             </div>
           )}
         </div>

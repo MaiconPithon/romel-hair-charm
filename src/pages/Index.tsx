@@ -99,6 +99,9 @@ const Index = () => {
 
         {/* Footer */}
         <div className="absolute bottom-4 flex flex-col items-center gap-1 text-xs text-muted-foreground/50">
+          <Link to="/meus-agendamentos" className="hover:text-muted-foreground transition-colors font-medium">
+            Meus Agendamentos
+          </Link>
           <Link to="/admin/login" className="hover:text-muted-foreground transition-colors font-medium">
             Área do Barbeiro
           </Link>

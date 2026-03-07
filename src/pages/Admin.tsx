@@ -20,7 +20,7 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import { toast } from "sonner";
 import { format } from "date-fns";
 import { ptBR } from "date-fns/locale";
-import { LogOut, Plus, Trash2, Edit2, Home, CalendarIcon, Star, DollarSign, MessageCircle, Key, Clock, Settings, Palette, Users, Zap, Filter } from "lucide-react";
+import { LogOut, Plus, Trash2, Edit2, Home, CalendarIcon, Star, DollarSign, MessageCircle, Key, Clock, Settings, Palette, Users, Zap, Filter, AlertTriangle, FileText, ClipboardList, Printer } from "lucide-react";
 import { cn } from "@/lib/utils";
 
 const DAY_NAMES = ["Domingo", "Segunda", "Terça", "Quarta", "Quinta", "Sexta", "Sábado"];
@@ -29,6 +29,7 @@ const Admin = () => {
   const navigate = useNavigate();
   const qc = useQueryClient();
   const [filterDate, setFilterDate] = useState("");
+  const [planReportMonth, setPlanReportMonth] = useState(format(new Date(), "yyyy-MM"));
   const { data: allAppointments, refetch: refetchAppts } = useAppointments(filterDate || undefined);
   const { data: todayAppointments } = useAppointments(format(new Date(), "yyyy-MM-dd"));
   const { data: services, refetch: refetchServices } = useServices(false);
@@ -81,19 +82,45 @@ const Admin = () => {
 
   // Stats
   const todayCount = todayAppointments?.length || 0;
-  const todayRevenue = todayAppointments?.filter(a => ["finalizado", "confirmado"].includes(a.status)).reduce((sum, a) => sum + Number(a.total_price), 0) || 0;
+  // Revenue excludes 'plano' payment method (subscription services don't count as cash revenue)
+  const todayRevenue = todayAppointments?.filter(a => ["finalizado", "confirmado"].includes(a.status) && a.payment_method !== "plano").reduce((sum, a) => sum + Number(a.total_price), 0) || 0;
+  const todayPlanCount = todayAppointments?.filter(a => a.payment_method === "plano").length || 0;
 
   const now = new Date();
   const monthStart = format(new Date(now.getFullYear(), now.getMonth(), 1), "yyyy-MM-dd");
-  const monthRevenue = allAppointments?.filter(a => ["finalizado", "confirmado"].includes(a.status) && a.appointment_date >= monthStart).reduce((sum, a) => sum + Number(a.total_price), 0) || 0;
-  const totalRevenue = allAppointments?.filter(a => ["finalizado", "confirmado"].includes(a.status)).reduce((sum, a) => sum + Number(a.total_price), 0) || 0;
+  const monthRevenue = allAppointments?.filter(a => ["finalizado", "confirmado"].includes(a.status) && a.payment_method !== "plano" && a.appointment_date >= monthStart).reduce((sum, a) => sum + Number(a.total_price), 0) || 0;
+  const totalRevenue = allAppointments?.filter(a => ["finalizado", "confirmado"].includes(a.status) && a.payment_method !== "plano").reduce((sum, a) => sum + Number(a.total_price), 0) || 0;
   const avgRating = avaliacoes?.length ? (avaliacoes.reduce((sum, a) => sum + a.stars, 0) / avaliacoes.length).toFixed(0) : "0";
+
+  // Cancellation alerts: appointments cancelled today
+  const cancelledToday = todayAppointments?.filter(a => a.status === "cancelado") || [];
+
+  // Plan report filtered by month
+  const planAppointments = allAppointments?.filter(a => a.payment_method === "plano" && a.appointment_date.startsWith(planReportMonth)) || [];
 
   // Appointment actions
   const updateStatus = async (id: string, status: string) => {
-    await supabase.from("appointments").update({ status }).eq("id", id);
+    const { error } = await supabase.from("appointments").update({ status }).eq("id", id);
+    if (error) {
+      toast.error("Erro ao atualizar status: " + error.message);
+      return;
+    }
     refetchAppts();
     toast.success("Status atualizado!");
+  };
+
+  // Toggle payment_method between 'plano' and the previous method (null/dinheiro)
+  const togglePlanPayment = async (id: string, isCurrentlyPlano: boolean) => {
+    const { error } = await supabase
+      .from("appointments")
+      .update({ payment_method: isCurrentlyPlano ? null : "plano" })
+      .eq("id", id);
+    if (error) {
+      toast.error("Erro ao marcar como plano: " + error.message);
+      return;
+    }
+    refetchAppts();
+    toast.success(isCurrentlyPlano ? "Plano removido." : "Marcado como Plano!");
   };
 
   const deleteAppointment = async (id: string) => {
@@ -252,8 +279,8 @@ const Admin = () => {
       service_names: allNames,
       appointment_date: qsDate,
       appointment_time: `${qsHour}:${qsMinute}:00`,
-      status: qsPaymentStatus === "pago" ? "finalizado" : "pendente",
-      payment_method: "dinheiro",
+      status: qsPaymentStatus === "pago" ? "finalizado" : qsPaymentStatus === "plano" ? "finalizado" : "pendente",
+      payment_method: qsPaymentStatus === "pago" ? "dinheiro" : qsPaymentStatus === "plano" ? "plano" : qsPaymentStatus,
       total_price: qsTotalPrice,
       total_duration: totalDuration,
     });
@@ -325,10 +352,16 @@ const Admin = () => {
       <div className="mx-auto max-w-6xl p-4">
         <Tabs defaultValue="appointments">
           <TabsList className="mb-6 w-full flex-wrap justify-start bg-card border border-border">
-            <TabsTrigger value="appointments">Agendamentos</TabsTrigger>
+            <TabsTrigger value="appointments" className="relative">
+              Agendamentos
+              {cancelledToday.length > 0 && (
+                <span className="ml-1.5 inline-flex h-4 w-4 items-center justify-center rounded-full bg-red-500 text-[10px] font-bold text-white">{cancelledToday.length}</span>
+              )}
+            </TabsTrigger>
             <TabsTrigger value="quicksale">Encaixe</TabsTrigger>
             <TabsTrigger value="schedule">Agenda</TabsTrigger>
             <TabsTrigger value="services">Serviços</TabsTrigger>
+            <TabsTrigger value="plans"><FileText className="h-3.5 w-3.5 mr-1" />Planos</TabsTrigger>
             <TabsTrigger value="team">Equipe</TabsTrigger>
             <TabsTrigger value="appearance">Aparência</TabsTrigger>
             <TabsTrigger value="config">Config</TabsTrigger>
@@ -336,6 +369,24 @@ const Admin = () => {
 
           {/* ===== APPOINTMENTS TAB ===== */}
           <TabsContent value="appointments">
+            {/* Cancellation Alert Banner */}
+            {cancelledToday.length > 0 && (
+              <div className="mb-4 rounded-lg border border-red-500/50 bg-red-500/10 p-4">
+                <div className="flex items-center gap-2 mb-2">
+                  <AlertTriangle className="h-5 w-5 text-red-400" />
+                  <h3 className="font-bold text-red-400">⚠️ {cancelledToday.length} horário(s) cancelado(s) hoje — slots livres para encaixe!</h3>
+                </div>
+                <div className="space-y-1">
+                  {cancelledToday.map(a => (
+                    <div key={a.id} className="flex items-center gap-3 text-sm text-red-300">
+                      <span className="font-mono bg-red-900/40 px-2 py-0.5 rounded">{a.appointment_time.substring(0, 5)}</span>
+                      <span>{a.client_name}</span>
+                      <span className="text-red-400/70">— {a.service_names?.join(", ")}</span>
+                    </div>
+                  ))}
+                </div>
+              </div>
+            )}
             {/* Stats cards */}
             <div className="grid grid-cols-2 md:grid-cols-5 gap-3 mb-6">
               <div className="rounded-lg border border-border bg-card p-4">
@@ -354,9 +405,9 @@ const Admin = () => {
                 <p className="text-xs text-muted-foreground">Este mês</p>
               </div>
               <div className="rounded-lg border border-border bg-card p-4">
-                <div className="flex items-center gap-2 text-muted-foreground mb-1"><DollarSign className="h-4 w-4" style={{ color: primaryColor }} /></div>
-                <p className="text-2xl font-bold">R$ {totalRevenue.toFixed(2)}</p>
-                <p className="text-xs text-muted-foreground">Total geral</p>
+                <div className="flex items-center gap-2 text-muted-foreground mb-1"><ClipboardList className="h-4 w-4" style={{ color: primaryColor }} /></div>
+                <p className="text-2xl font-bold" style={{ color: primaryColor }}>{todayPlanCount}</p>
+                <p className="text-xs text-muted-foreground">Serviços por Assinatura</p>
               </div>
               <div className="rounded-lg border border-border bg-card p-4">
                 <div className="flex items-center gap-2 text-muted-foreground mb-1"><Star className="h-4 w-4 text-yellow-500 fill-yellow-500" /></div>
@@ -399,40 +450,62 @@ const Admin = () => {
                   </TableHeader>
                   <TableBody>
                     {allAppointments?.map((a) => (
-                      <TableRow key={a.id}>
+                      <TableRow key={a.id} className={cn(a.status === "cancelado" && "opacity-40")}>
                         <TableCell>{a.appointment_date.split("-").reverse().join("/").substring(0, 5)}</TableCell>
                         <TableCell>{a.appointment_time.substring(0, 5)}</TableCell>
-                        <TableCell>{a.client_name}</TableCell>
+                        <TableCell className={cn(a.status === "cancelado" && "line-through text-muted-foreground")}>{a.client_name}</TableCell>
                         <TableCell className="text-xs">{a.client_phone}</TableCell>
                         <TableCell>
-                          <span className="text-sm">{a.service_names?.join(" + ")}</span>
+                          <span className={cn("text-sm", a.status === "cancelado" && "line-through text-muted-foreground")}>{a.service_names?.join(" + ")}</span>
                           <br /><span className="text-xs text-muted-foreground">{a.total_duration > 0 ? a.total_duration : a.service_names?.reduce((sum, name) => { const n = name.toLowerCase(); if (n.includes("corte")) return sum + 45; if (n.includes("barba")) return sum + 30; if (n.includes("sobrancelha") || n.includes("pigment")) return sum + 15; return sum + 30; }, 0)} min</span>
                         </TableCell>
-                        <TableCell className="font-medium" style={{ color: primaryColor }}>R$ {Number(a.total_price).toFixed(2)}</TableCell>
+                        <TableCell className="font-medium" style={{ color: a.status === "cancelado" ? "#6b7280" : primaryColor }}>R$ {Number(a.total_price).toFixed(2)}</TableCell>
                         <TableCell className="text-xs capitalize">{a.payment_method || "—"}</TableCell>
                         <TableCell>
-                          <select
-                            value={a.status}
-                            onChange={(e) => updateStatus(a.id, e.target.value)}
-                            className={cn(
-                              "rounded-full px-2 py-1 text-xs font-medium border-0 cursor-pointer",
-                              a.status === "confirmado" ? "bg-blue-500/20 text-blue-400" :
-                                a.status === "finalizado" ? "bg-green-500/20 text-green-400" :
-                                  a.status === "cancelado" ? "bg-red-500/20 text-red-400" :
-                                    "bg-yellow-500/20 text-yellow-400"
-                            )}
-                          >
-                            <option value="pendente">pendente</option>
-                            <option value="confirmado">confirmado</option>
-                            <option value="finalizado">finalizado</option>
-                            <option value="cancelado">cancelado</option>
-                          </select>
+                          <div className="flex items-center gap-1">
+                            <select
+                              value={a.status}
+                              onChange={(e) => updateStatus(a.id, e.target.value)}
+                              className={cn(
+                                "rounded-full px-2 py-1 text-xs font-medium border-0 cursor-pointer",
+                                a.status === "confirmado" ? "bg-blue-500/20 text-blue-400" :
+                                  a.status === "finalizado" ? "bg-green-500/20 text-green-400" :
+                                    a.status === "cancelado" ? "bg-red-500/20 text-red-400" :
+                                      "bg-yellow-500/20 text-yellow-400"
+                              )}
+                            >
+                              <option value="pendente">pendente</option>
+                              <option value="confirmado">confirmado</option>
+                              <option value="finalizado">finalizado</option>
+                              <option value="cancelado">cancelado</option>
+                            </select>
+                            {/* Plano toggle badge — uses payment_method, not status */}
+                            <button
+                              onClick={() => togglePlanPayment(a.id, a.payment_method === "plano")}
+                              title={a.payment_method === "plano" ? "Clique para remover tag Plano" : "Clique para marcar como Plano"}
+                              className={cn(
+                                "rounded-full px-2 py-0.5 text-[10px] font-bold border transition-all cursor-pointer",
+                                a.payment_method === "plano"
+                                  ? "bg-purple-500/20 text-purple-300 border-purple-500/40"
+                                  : "bg-transparent text-muted-foreground/40 border-border hover:border-purple-500/40 hover:text-purple-400"
+                              )}
+                            >
+                              📋 Plano
+                            </button>
+                          </div>
                         </TableCell>
                         <TableCell>
                           <div className="flex gap-1">
                             {a.client_phone && a.client_phone !== "N/A" && (
-                              <a href={`https://wa.me/${a.client_phone}?text=${encodeURIComponent(`Lembrete de agendamento Olá, ${a.client_name}! Passando para confirmar seu agendamento de 💇🏽‍♂️ ${a.service_names?.join(", ")} hoje às ${a.appointment_time.substring(0, 5)}⌚ -> 💈 𝕭𝖆𝖗𝖇𝖊𝖆𝖗𝖎𝖆 𝕯𝖔 𝕽𝖔𝖒𝖊𝖑💈. Te aguardamos!`)}`} target="_blank" rel="noopener noreferrer">
-                                <Button size="icon" variant="ghost" className="h-8 w-8"><MessageCircle className="h-4 w-4" style={{ color: primaryColor }} /></Button>
+                              <a
+                                href={a.status !== "cancelado" ? `https://wa.me/${a.client_phone}?text=${encodeURIComponent(`Lembrete de agendamento Olá, ${a.client_name}! Passando para confirmar seu agendamento de 💇🏽‍♂️ ${a.service_names?.join(", ")} hoje às ${a.appointment_time.substring(0, 5)}⌚ -> 💈 𝕭𝖆𝖗𝖇𝖊𝖆𝖗𝖎𝖆 𝕯𝖔 𝕽𝖔𝖒𝖊𝖑💈. Te aguardamos!`)}` : undefined}
+                                target="_blank"
+                                rel="noopener noreferrer"
+                                onClick={a.status === "cancelado" ? (e) => e.preventDefault() : undefined}
+                              >
+                                <Button size="icon" variant="ghost" className="h-8 w-8" disabled={a.status === "cancelado"}>
+                                  <MessageCircle className="h-4 w-4" style={{ color: a.status === "cancelado" ? "#6b7280" : primaryColor }} />
+                                </Button>
                               </a>
                             )}
                             <Button size="icon" variant="ghost" className="h-8 w-8" onClick={() => openEditAppt(a)}><Edit2 className="h-4 w-4" /></Button>
@@ -486,13 +559,14 @@ const Admin = () => {
                 <div className="mt-2">
                   <label className="text-sm font-medium mb-1 block">Status do Pagamento</label>
                   <Select value={qsPaymentStatus} onValueChange={setQsPaymentStatus}>
-                    <SelectTrigger className="w-40 bg-background">
+                    <SelectTrigger className="w-44 bg-background">
                       <SelectValue />
                     </SelectTrigger>
                     <SelectContent className="dark">
                       <SelectItem value="pago">✅ Pago</SelectItem>
                       <SelectItem value="pendente">⏳ Pendente</SelectItem>
                       <SelectItem value="fiado">📝 Fiado</SelectItem>
+                      <SelectItem value="plano">📋 Plano (Assinatura)</SelectItem>
                     </SelectContent>
                   </Select>
                 </div>
@@ -690,6 +764,102 @@ const Admin = () => {
                     <Button size="icon" variant="ghost" onClick={async () => { await supabase.from("services").delete().eq("id", s.id); refetchServices(); toast.success("Serviço excluído!"); }}><Trash2 className="h-4 w-4 text-red-400" /></Button>
                   </div>
                 ))}
+              </div>
+            </div>
+          </TabsContent>
+
+          {/* ===== PLANS REPORT TAB ===== */}
+          <TabsContent value="plans">
+            <div className="rounded-lg border border-border bg-card p-5">
+              <div className="flex flex-wrap items-center justify-between gap-4 mb-6">
+                <div>
+                  <h3 className="text-lg font-bold text-primary flex items-center gap-2" style={{ fontFamily: 'Playfair Display, serif' }}>
+                    <FileText className="h-5 w-5" /> Relatório de Planos (Assinaturas)
+                  </h3>
+                  <p className="text-sm text-muted-foreground mt-1">Atendimentos realizados por clientes com plano/assinatura (não contabilizados no caixa).</p>
+                </div>
+                <div className="flex items-center gap-3">
+                  <label className="text-sm font-medium text-muted-foreground">Filtrar por mês:</label>
+                  <input
+                    type="month"
+                    value={planReportMonth}
+                    onChange={(e) => setPlanReportMonth(e.target.value)}
+                    className="rounded border border-border bg-background px-3 py-2 text-sm text-foreground"
+                  />
+                  <Button
+                    variant="outline"
+                    size="sm"
+                    className="gap-2"
+                    onClick={() => {
+                      const win = window.open('', '_blank');
+                      if (!win) return;
+                      const monthLabel = planReportMonth;
+                      const rows = planAppointments.map(a =>
+                        `<tr><td>${a.appointment_date.split('-').reverse().join('/')}</td><td>${a.appointment_time.substring(0, 5)}</td><td>${a.client_name}</td><td>${a.client_phone}</td><td>${a.service_names?.join(' + ')}</td><td>R$ ${Number(a.total_price).toFixed(2)}</td></tr>`
+                      ).join('');
+                      const total = planAppointments.reduce((s, a) => s + Number(a.total_price), 0).toFixed(2);
+                      win.document.write(`<!DOCTYPE html><html><head><meta charset='utf-8'/><title>Relatório de Planos - ${monthLabel}</title><style>body{font-family:Arial,sans-serif;padding:30px;color:#111}h1{font-size:22px;margin-bottom:4px}p{color:#666;margin:0 0 20px}table{width:100%;border-collapse:collapse;font-size:13px}th{background:#222;color:#fff;padding:8px 12px;text-align:left}td{border-bottom:1px solid #ddd;padding:8px 12px}.total{font-weight:bold;margin-top:16px;font-size:14px}.badge{background:#dbeafe;color:#1d4ed8;border-radius:9999px;padding:2px 8px;font-size:11px;font-weight:600}</style></head><body><h1>📊 Relatório Mensal de Planos</h1><p>Período: ${monthLabel} &mdash; ${planAppointments.length} atendimento(s)</p><table><tr><th>Data</th><th>Hora</th><th>Cliente</th><th>Telefone</th><th>Serviço</th><th>Valor de Tabela</th></tr>${rows}</table><p class='total'>Total de referência: R$ ${total} <span class='badge'>Não entra no caixa</span></p></body></html>`);
+                      win.document.close();
+                      win.print();
+                    }}
+                  >
+                    <Printer className="h-4 w-4" />
+                    Imprimir / PDF
+                  </Button>
+                </div>
+              </div>
+
+              {/* Summary */}
+              <div className="grid grid-cols-1 md:grid-cols-3 gap-3 mb-6">
+                <div className="rounded-lg border border-border bg-background p-4 text-center">
+                  <p className="text-3xl font-black" style={{ color: primaryColor }}>{planAppointments.length}</p>
+                  <p className="text-xs text-muted-foreground mt-1">Atendimentos de plano no período</p>
+                </div>
+                <div className="rounded-lg border border-border bg-background p-4 text-center">
+                  <p className="text-3xl font-black text-muted-foreground">R$ 0,00</p>
+                  <p className="text-xs text-muted-foreground mt-1">Impacto no caixa (nenhum)</p>
+                </div>
+                <div className="rounded-lg border border-border bg-background p-4 text-center">
+                  <p className="text-3xl font-black text-amber-400">R$ {planAppointments.reduce((sum, a) => sum + Number(a.total_price), 0).toFixed(2)}</p>
+                  <p className="text-xs text-muted-foreground mt-1">Valor de tabela (referência)</p>
+                </div>
+              </div>
+
+              <div className="overflow-x-auto">
+                <Table>
+                  <TableHeader>
+                    <TableRow>
+                      <TableHead>Data</TableHead>
+                      <TableHead>Hora</TableHead>
+                      <TableHead>Nome do Cliente</TableHead>
+                      <TableHead>Telefone</TableHead>
+                      <TableHead>Serviço Realizado</TableHead>
+                      <TableHead>Valor de Tabela</TableHead>
+                    </TableRow>
+                  </TableHeader>
+                  <TableBody>
+                    {planAppointments.map((a) => (
+                      <TableRow key={a.id}>
+                        <TableCell>{a.appointment_date.split("-").reverse().join("/")}</TableCell>
+                        <TableCell>{a.appointment_time.substring(0, 5)}</TableCell>
+                        <TableCell className="font-medium">{a.client_name}</TableCell>
+                        <TableCell className="text-xs">{a.client_phone}</TableCell>
+                        <TableCell><span className="text-sm">{a.service_names?.join(" + ")}</span></TableCell>
+                        <TableCell>
+                          <div className="flex items-center gap-1">
+                            <span className="text-muted-foreground line-through text-sm">R$ {Number(a.total_price).toFixed(2)}</span>
+                            <span className="ml-2 rounded-full bg-blue-500/20 text-blue-400 text-xs px-2 py-0.5 font-medium">Plano</span>
+                          </div>
+                        </TableCell>
+                      </TableRow>
+                    ))}
+                    {planAppointments.length === 0 && (
+                      <TableRow><TableCell colSpan={6} className="text-center text-muted-foreground py-10">
+                        Nenhum atendimento de plano encontrado para este período.
+                      </TableCell></TableRow>
+                    )}
+                  </TableBody>
+                </Table>
               </div>
             </div>
           </TabsContent>
@@ -955,6 +1125,29 @@ const Admin = () => {
                       {[15, 30, 45, 60, 90].map(v => <option key={v} value={String(v)}>{v} min</option>)}
                     </select>
                     <Button size="sm" onClick={() => saveSetting("buffer_minutes")}>Salvar</Button>
+                  </div>
+                </div>
+
+                <div>
+                  <label className="text-sm font-semibold mb-1 block">Antecedência mínima para cancelamento</label>
+                  <p className="text-xs text-muted-foreground mb-2">
+                    Clientes só podem cancelar/reagendar com esta antecedência. Uma margem de 5 minutos é sempre concedida (para quem percebe o erro logo após agendar).
+                  </p>
+                  <div className="flex items-center gap-2">
+                    <select
+                      value={settingsLocal.cancel_minutes_limit || "120"}
+                      onChange={(e) => setSettingsLocal(prev => ({ ...prev, cancel_minutes_limit: e.target.value }))}
+                      className="rounded border border-border bg-background px-3 py-2 text-sm"
+                    >
+                      <option value="15">15 minutos</option>
+                      <option value="30">30 minutos</option>
+                      <option value="60">1 hora</option>
+                      <option value="120">2 horas (padrão)</option>
+                      <option value="240">4 horas</option>
+                      <option value="720">12 horas</option>
+                      <option value="1440">24 horas</option>
+                    </select>
+                    <Button size="sm" onClick={() => saveSetting("cancel_minutes_limit")}>Salvar</Button>
                   </div>
                 </div>
               </div>
