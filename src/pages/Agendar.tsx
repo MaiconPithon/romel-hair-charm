@@ -153,6 +153,8 @@ const Agendar = () => {
   const handleSubmit = async () => {
     setSaving(true);
     try {
+      const dbPaymentMethod = paymentMethod === "pix" ? "Pix" : "Dinheiro";
+
       const { error } = await supabase.from("appointments").insert({
         client_name: clientName,
         client_phone: clientPhone,
@@ -160,7 +162,7 @@ const Agendar = () => {
         service_names: chosen.map((s) => s.name),
         appointment_date: format(selectedDate!, "yyyy-MM-dd"),
         appointment_time: selectedTime + ":00",
-        payment_method: paymentMethod,
+        payment_method: dbPaymentMethod,
         total_price: totalPrice,
         total_duration: totalDuration,
       });

@@ -272,6 +272,11 @@ const Admin = () => {
     const catalogChosen = services?.filter((s) => qsServiceIds.includes(s.id)) || [];
     const allNames = [...catalogChosen.map(s => s.name), ...qsCustomServices.map(s => s.name)];
     const totalDuration = catalogChosen.reduce((sum, s) => sum + s.duration, 0);
+    const quickSalePaymentMethod =
+      qsPaymentStatus === "plano" ? "plano" :
+      qsPaymentStatus === "pago" ? "Dinheiro" :
+      null;
+
     await supabase.from("appointments").insert({
       client_name: qsName || "Venda Rápida",
       client_phone: "N/A",
@@ -280,7 +285,7 @@ const Admin = () => {
       appointment_date: qsDate,
       appointment_time: `${qsHour}:${qsMinute}:00`,
       status: qsPaymentStatus === "pago" ? "finalizado" : qsPaymentStatus === "plano" ? "finalizado" : "pendente",
-      payment_method: qsPaymentStatus === "pago" ? "dinheiro" : qsPaymentStatus === "plano" ? "plano" : qsPaymentStatus,
+      payment_method: quickSalePaymentMethod,
       total_price: qsTotalPrice,
       total_duration: totalDuration,
     });
