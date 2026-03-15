@@ -10,6 +10,7 @@ import Admin from "./pages/Admin";
 import ResetPassword from "./pages/ResetPassword";
 import NotFound from "./pages/NotFound";
 import MeusAgendamentos from "./pages/MeusAgendamentos";
+import { Analytics } from "@vercel/analytics/react";
 
 const queryClient = new QueryClient();
 
