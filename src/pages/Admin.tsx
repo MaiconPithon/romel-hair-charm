@@ -688,7 +688,7 @@ const Admin = () => {
               </div>
 
               <Button onClick={handleQuickSale} disabled={qsServiceIds.length === 0 && qsCustomServices.length === 0} className="w-full bg-primary hover:bg-primary/90 text-primary-foreground font-bold py-6 text-base">
-                <Zap className="mr-2 h-5 w-5" /> FINALIZAR ATENDIMENTO
+                <Zap className="mr-2 h-5 w-5" /> ADICIONAR ENCAIXE NA AGENDA
               </Button>
             </div>
           </TabsContent>
