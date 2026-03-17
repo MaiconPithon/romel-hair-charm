@@ -269,29 +269,67 @@ const Admin = () => {
   })();
 
   const handleQuickSale = async () => {
-    const catalogChosen = services?.filter((s) => qsServiceIds.includes(s.id)) || [];
-    const allNames = [...catalogChosen.map(s => s.name), ...qsCustomServices.map(s => s.name)];
-    const totalDuration = catalogChosen.reduce((sum, s) => sum + s.duration, 0);
-    const quickSalePaymentMethod =
-      qsPaymentStatus === "plano" ? "plano" :
-      qsPaymentStatus === "pago" ? "Dinheiro" :
-      null;
+    try {
+      const catalogChosen = services?.filter((s) => qsServiceIds.includes(s.id)) || [];
+      const allNames = [...catalogChosen.map((s) => s.name), ...qsCustomServices.map((s) => s.name)];
+      const estimatedCustomDuration = qsCustomServices.length * 30;
+      const totalDuration = Math.max(
+        catalogChosen.reduce((sum, s) => sum + s.duration, 0) + estimatedCustomDuration,
+        15,
+      );
+      const quickSalePaymentMethod =
+        qsPaymentStatus === "plano" ? "plano" : qsPaymentStatus === "pago" ? "Dinheiro" : null;
 
-    await supabase.from("appointments").insert({
-      client_name: qsName || "Venda Rápida",
-      client_phone: "N/A",
-      service_ids: qsServiceIds,
-      service_names: allNames,
-      appointment_date: qsDate,
-      appointment_time: `${qsHour}:${qsMinute}:00`,
-      status: qsPaymentStatus === "pago" ? "finalizado" : qsPaymentStatus === "plano" ? "finalizado" : "pendente",
-      payment_method: quickSalePaymentMethod,
-      total_price: qsTotalPrice,
-      total_duration: totalDuration,
-    });
-    setQsName(""); setQsServiceIds([]); setQsCustomServices([]);
-    refetchAppts();
-    toast.success("Atendimento finalizado!");
+      const startMinutes = Number(qsHour) * 60 + Number(qsMinute);
+      const endMinutes = startMinutes + totalDuration;
+
+      const { data: sameDayAppointments, error: dayError } = await supabase
+        .from("appointments")
+        .select("appointment_time, total_duration, status")
+        .eq("appointment_date", qsDate)
+        .neq("status", "cancelado");
+
+      if (dayError) throw dayError;
+
+      const hasConflict = (sameDayAppointments || []).some((appointment) => {
+        const [hour, minute] = appointment.appointment_time.split(":").map(Number);
+        const appointmentStart = hour * 60 + minute;
+        const appointmentDuration = Math.max(appointment.total_duration || 0, 15);
+        const appointmentEnd = appointmentStart + appointmentDuration;
+
+        return startMinutes < appointmentEnd && endMinutes > appointmentStart;
+      });
+
+      if (hasConflict) {
+        toast.error("Esse horário já está ocupado na agenda.");
+        return;
+      }
+
+      const { error } = await supabase.from("appointments").insert({
+        client_name: qsName || "Venda Rápida",
+        client_phone: "N/A",
+        service_ids: qsServiceIds,
+        service_names: allNames,
+        appointment_date: qsDate,
+        appointment_time: `${qsHour}:${qsMinute}:00`,
+        status: qsPaymentStatus === "pago" || qsPaymentStatus === "plano" ? "finalizado" : "pendente",
+        payment_method: quickSalePaymentMethod,
+        total_price: qsTotalPrice,
+        total_duration: totalDuration,
+      });
+
+      if (error) throw error;
+
+      setQsName("");
+      setQsServiceIds([]);
+      setQsCustomServices([]);
+      setFilterDate(qsDate);
+      qc.invalidateQueries({ queryKey: ["appointments"] });
+      refetchAppts();
+      toast.success("Encaixe adicionado na agenda!");
+    } catch (error: any) {
+      toast.error(error?.message || "Não foi possível adicionar o encaixe.");
+    }
   };
 
   // Team actions
