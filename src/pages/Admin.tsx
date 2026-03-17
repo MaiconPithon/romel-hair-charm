@@ -595,7 +595,8 @@ const Admin = () => {
                     </select>
                     <span>:</span>
                     <select value={qsMinute} onChange={(e) => setQsMinute(e.target.value)} className="rounded border border-border bg-background px-2 py-2 text-sm">
-                      {["00", "15", "30", "45"].map(m => <option key={m} value={m}>{m}</option>)}
+                      {Array.from({ length: 60 }, (_, i) => String(i).padStart(2, "0")).map(m => <option key={m} value={m}>{m}</option>)}
+                    </select>
                     </select>
                   </div>
                 </div>

@@ -104,4 +104,18 @@
   h1, h2, h3, h4 {
     font-family: 'Playfair Display', serif;
   }
+
+  /* Force date/time inputs to be visible in dark mode on mobile */
+  input[type="date"],
+  input[type="time"],
+  input[type="month"],
+  input[type="datetime-local"] {
+    color-scheme: dark;
+  }
+
+  input[type="date"]::-webkit-calendar-picker-indicator,
+  input[type="time"]::-webkit-calendar-picker-indicator,
+  input[type="month"]::-webkit-calendar-picker-indicator {
+    filter: invert(1);
+  }
 }
