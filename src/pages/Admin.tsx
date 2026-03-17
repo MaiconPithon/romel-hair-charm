@@ -468,7 +468,7 @@ const Admin = () => {
                     type="date"
                     value={filterDate}
                     onChange={(e) => setFilterDate(e.target.value)}
-                    className="w-auto bg-muted text-foreground border-border [color-scheme:dark]"
+                    className="w-auto bg-muted text-white border border-white/20 [color-scheme:dark] font-medium"
                     placeholder="Filtrar por data"
                   />
                   {filterDate && (
@@ -634,7 +634,7 @@ const Admin = () => {
                         checked={qsServiceIds.includes(s.id)}
                         onCheckedChange={(c) => setQsServiceIds(prev => c ? [...prev, s.id] : prev.filter(id => id !== s.id))}
                       />
-                      <span className="flex-1">{s.name}</span>
+                      <span className="flex-1 text-white font-semibold">{s.name}</span>
                       <span className="text-sm font-medium" style={{ color: primaryColor }}>R$ {Number(s.price).toFixed(2)}</span>
                     </label>
                   ))}
@@ -1213,7 +1213,7 @@ const Admin = () => {
                       checked={editServiceIds.includes(s.id)}
                       onCheckedChange={(c) => setEditServiceIds(prev => c ? [...prev, s.id] : prev.filter(id => id !== s.id))}
                     />
-                    <span className="flex-1">{s.name}</span>
+                    <span className="flex-1 text-white font-semibold">{s.name}</span>
                     <span className="text-sm" style={{ color: primaryColor }}>R$ {Number(s.price).toFixed(2)}</span>
                   </label>
                 ))}
