@@ -1213,7 +1213,7 @@ const Admin = () => {
                       checked={editServiceIds.includes(s.id)}
                       onCheckedChange={(c) => setEditServiceIds(prev => c ? [...prev, s.id] : prev.filter(id => id !== s.id))}
                     />
-                    <span className="flex-1">{s.name}</span>
+                    <span className="flex-1 text-white font-semibold">{s.name}</span>
                     <span className="text-sm" style={{ color: primaryColor }}>R$ {Number(s.price).toFixed(2)}</span>
                   </label>
                 ))}
