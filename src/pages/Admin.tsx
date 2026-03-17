@@ -585,7 +585,7 @@ const Admin = () => {
                       type="date"
                       value={qsDate}
                       onChange={(e) => setQsDate(e.target.value)}
-                      className="bg-background w-auto"
+                      className="bg-background w-auto text-foreground [color-scheme:dark]"
                     />
                   </div>
                   <div className="flex items-center gap-2">
