@@ -48,6 +48,7 @@ const Admin = () => {
 
   // Reviews management state
   const [reviewFilterStars, setReviewFilterStars] = useState<string>("all");
+  const [isSuperAdmin, setIsSuperAdmin] = useState(false);
 
   // Auth check
   useEffect(() => {
@@ -56,6 +57,8 @@ const Admin = () => {
       if (!user) { navigate("/admin/login"); return; }
       const { data: hasRole } = await supabase.rpc("has_role", { _user_id: user.id, _role: "admin" as const });
       if (!hasRole) { navigate("/admin/login"); }
+      // Super admin check by email
+      setIsSuperAdmin(user.email === "maiconinform@gmail.com");
     };
     check();
   }, [navigate]);
@@ -409,7 +412,7 @@ const Admin = () => {
             <TabsTrigger value="services">Serviços</TabsTrigger>
             <TabsTrigger value="plans"><FileText className="h-3.5 w-3.5 mr-1" />Planos</TabsTrigger>
             <TabsTrigger value="team">Equipe</TabsTrigger>
-            <TabsTrigger value="reviews"><Star className="h-3.5 w-3.5 mr-1" />Avaliações</TabsTrigger>
+            {isSuperAdmin && <TabsTrigger value="reviews"><Star className="h-3.5 w-3.5 mr-1" />Avaliações</TabsTrigger>}
             <TabsTrigger value="appearance">Aparência</TabsTrigger>
             <TabsTrigger value="config">Config</TabsTrigger>
           </TabsList>
@@ -1124,6 +1127,88 @@ const Admin = () => {
               </div>
             </div>
           </TabsContent>
+
+          {/* ===== REVIEWS TAB (Super Admin only) ===== */}
+          {isSuperAdmin && (
+          <TabsContent value="reviews">
+            <div className="max-w-4xl mx-auto">
+              <div className="rounded-lg border border-border bg-card p-5 space-y-4">
+                <h3 className="text-lg font-bold text-primary flex items-center gap-2">
+                  <Star className="h-5 w-5" /> Gerenciar Avaliações
+                </h3>
+
+                <div className="flex flex-wrap gap-3 items-center">
+                  <Select value={reviewFilterStars} onValueChange={setReviewFilterStars}>
+                    <SelectTrigger className="w-[160px] bg-muted border-border text-foreground">
+                      <SelectValue placeholder="Filtrar por nota" />
+                    </SelectTrigger>
+                    <SelectContent>
+                      <SelectItem value="all">Todas as notas</SelectItem>
+                      <SelectItem value="5">5 estrelas</SelectItem>
+                      <SelectItem value="4">4 estrelas</SelectItem>
+                      <SelectItem value="3">3 estrelas</SelectItem>
+                      <SelectItem value="2">2 estrelas</SelectItem>
+                      <SelectItem value="1">1 estrela</SelectItem>
+                    </SelectContent>
+                  </Select>
+                </div>
+
+                <div className="rounded-md border border-border overflow-x-auto">
+                  <Table>
+                    <TableHeader>
+                      <TableRow>
+                        <TableHead className="text-foreground font-semibold">Cliente</TableHead>
+                        <TableHead className="text-foreground font-semibold">Data</TableHead>
+                        <TableHead className="text-foreground font-semibold">Nota</TableHead>
+                        <TableHead className="text-foreground font-semibold">Status</TableHead>
+                        <TableHead className="text-foreground font-semibold">Ação</TableHead>
+                      </TableRow>
+                    </TableHeader>
+                    <TableBody>
+                      {avaliacoes
+                        ?.filter((a: any) => reviewFilterStars === "all" || a.stars === Number(reviewFilterStars))
+                        .map((a: any) => (
+                          <TableRow key={a.id} className={a.hidden ? "opacity-50" : ""}>
+                            <TableCell className="text-foreground font-medium">{a.client_name}</TableCell>
+                            <TableCell className="text-muted-foreground">{format(new Date(a.created_at), "dd/MM/yyyy")}</TableCell>
+                            <TableCell>
+                              <div className="flex gap-0.5">
+                                {[1, 2, 3, 4, 5].map((s) => (
+                                  <Star key={s} className={cn("h-4 w-4", s <= a.stars ? "fill-yellow-500 text-yellow-500" : "text-muted-foreground/30")} />
+                                ))}
+                              </div>
+                            </TableCell>
+                            <TableCell>
+                              <span className={cn("text-xs font-bold px-2 py-0.5 rounded-full", a.hidden ? "bg-destructive/20 text-destructive" : "bg-green-500/20 text-green-400")}>
+                                {a.hidden ? "Oculta" : "Visível"}
+                              </span>
+                            </TableCell>
+                            <TableCell>
+                              <Button
+                                size="sm"
+                                variant={a.hidden ? "outline" : "destructive"}
+                                onClick={async () => {
+                                  const { error } = await supabase.from("avaliacoes").update({ hidden: !a.hidden } as any).eq("id", a.id);
+                                  if (error) { toast.error("Erro ao atualizar"); return; }
+                                  toast.success(a.hidden ? "Avaliação restaurada" : "Avaliação ocultada");
+                                  qc.invalidateQueries({ queryKey: ["avaliacoes"] });
+                                }}
+                              >
+                                {a.hidden ? "Restaurar" : "Ocultar"}
+                              </Button>
+                            </TableCell>
+                          </TableRow>
+                        ))}
+                      {(!avaliacoes || avaliacoes.length === 0) && (
+                        <TableRow><TableCell colSpan={5} className="text-center text-muted-foreground py-8">Nenhuma avaliação encontrada</TableCell></TableRow>
+                      )}
+                    </TableBody>
+                  </Table>
+                </div>
+              </div>
+            </div>
+          </TabsContent>
+          )}
 
           {/* ===== CONFIG TAB ===== */}
           <TabsContent value="config">
