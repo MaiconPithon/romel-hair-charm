@@ -48,6 +48,7 @@ const Admin = () => {
 
   // Reviews management state
   const [reviewFilterStars, setReviewFilterStars] = useState<string>("all");
+  const [isSuperAdmin, setIsSuperAdmin] = useState(false);
 
   // Auth check
   useEffect(() => {
