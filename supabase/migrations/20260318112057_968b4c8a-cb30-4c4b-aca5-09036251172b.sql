@@ -1,0 +1,1 @@
+ALTER TABLE public.avaliacoes ADD COLUMN hidden boolean NOT NULL DEFAULT false;
