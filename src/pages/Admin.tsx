@@ -793,7 +793,7 @@ const Admin = () => {
                         onChange={(e) => updateServiceField(s.id, "duration", parseInt(e.target.value))}
                         className="rounded border border-border bg-card px-2 py-1 text-sm" style={{ color: primaryColor }}
                       >
-                        {[15, 30, 45, 60, 90, 120].map(v => <option key={v} value={v}>{v} min</option>)}
+                        {[10, 15, 20, 30, 40, 45, 50, 60, 90, 120].map(v => <option key={v} value={v}>{v} min</option>)}
                       </select>
                     </div>
                     <div className="flex items-center gap-2 text-sm">

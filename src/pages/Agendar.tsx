@@ -73,8 +73,8 @@ const Agendar = () => {
     const lunchStart = config.lunch_start ? (() => { const [h, m] = config.lunch_start!.split(":").map(Number); return h * 60 + m; })() : null;
     const lunchEnd = config.lunch_end ? (() => { const [h, m] = config.lunch_end!.split(":").map(Number); return h * 60 + m; })() : null;
 
-    // Fixed 15-min slot step for fine-grained timeline (no ghost gaps)
-    const slotStep = 15;
+    // Use 5-min granularity to support 10-min services precisely
+    const slotStep = 5;
 
     const now = new Date();
     const ds = format(selectedDate, "yyyy-MM-dd");
