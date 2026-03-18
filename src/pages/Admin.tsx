@@ -1377,7 +1377,9 @@ const Admin = () => {
             </div>
             <div>
               <label className="text-sm font-medium text-foreground mb-1 block">Duração (minutos)</label>
-              <Input placeholder="Ex: 45" type="number" value={sDuration} onChange={(e) => setSDuration(e.target.value)} className="bg-zinc-800 text-white border-border focus:border-yellow-500" style={{ color: 'white' }} />
+              <select value={sDuration} onChange={(e) => setSDuration(e.target.value)} className="w-full rounded border border-border bg-zinc-800 text-white px-3 py-2 text-sm focus:border-yellow-500">
+                {[10, 15, 20, 30, 40, 45, 50, 60, 90, 120].map(v => <option key={v} value={v}>{v} min</option>)}
+              </select>
             </div>
             <Button onClick={saveService} className="w-full">Salvar</Button>
           </div>
