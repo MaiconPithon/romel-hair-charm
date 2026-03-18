@@ -406,6 +406,7 @@ const Admin = () => {
             <TabsTrigger value="services">Serviços</TabsTrigger>
             <TabsTrigger value="plans"><FileText className="h-3.5 w-3.5 mr-1" />Planos</TabsTrigger>
             <TabsTrigger value="team">Equipe</TabsTrigger>
+            <TabsTrigger value="reviews"><Star className="h-3.5 w-3.5 mr-1" />Avaliações</TabsTrigger>
             <TabsTrigger value="appearance">Aparência</TabsTrigger>
             <TabsTrigger value="config">Config</TabsTrigger>
           </TabsList>

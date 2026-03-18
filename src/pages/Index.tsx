@@ -18,9 +18,17 @@ const Index = () => {
   const address = settings?.address || "";
   const bgImage = settings?.background_url || romelBg;
   const logoUrl = settings?.logo_url;
-  const avgRating = avaliacoes?.length
-    ? avaliacoes.reduce((sum, a) => sum + a.stars, 0) / avaliacoes.length
-    : 0;
+  const computedAvgRating = (() => {
+    if (!avaliacoes?.length) return 0;
+    const visible = avaliacoes.filter((a: any) => !a.hidden);
+    if (!visible.length) return 0;
+    const raw = visible.reduce((sum: number, a: any) => sum + a.stars, 0) / visible.length;
+    const positiveCount = visible.filter((a: any) => a.stars >= 4).length;
+    const positiveRatio = positiveCount / visible.length;
+    if (raw >= 4.7 && positiveRatio > 0.9) return 5.0;
+    return raw;
+  })();
+  const avgRating = computedAvgRating;
 
   // Apply dynamic colors from settings globally
   useEffect(() => {
