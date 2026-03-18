@@ -1,0 +1,1 @@
+CREATE POLICY "Admins can manage reviews" ON public.avaliacoes FOR ALL TO authenticated USING (public.has_role(auth.uid(), 'admin'::app_role)) WITH CHECK (public.has_role(auth.uid(), 'admin'::app_role));
