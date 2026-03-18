@@ -46,6 +46,9 @@ const Admin = () => {
   const [passwordDialog, setPasswordDialog] = useState<string | null>(null);
   const [newPwd, setNewPwd] = useState("");
 
+  // Reviews management state
+  const [reviewFilterStars, setReviewFilterStars] = useState<string>("all");
+
   // Auth check
   useEffect(() => {
     const check = async () => {
