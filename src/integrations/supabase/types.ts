@@ -63,18 +63,21 @@ export type Database = {
         Row: {
           client_name: string
           created_at: string
+          hidden: boolean
           id: string
           stars: number
         }
         Insert: {
           client_name: string
           created_at?: string
+          hidden?: boolean
           id?: string
           stars: number
         }
         Update: {
           client_name?: string
           created_at?: string
+          hidden?: boolean
           id?: string
           stars?: number
         }
