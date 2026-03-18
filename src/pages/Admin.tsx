@@ -57,6 +57,8 @@ const Admin = () => {
       if (!user) { navigate("/admin/login"); return; }
       const { data: hasRole } = await supabase.rpc("has_role", { _user_id: user.id, _role: "admin" as const });
       if (!hasRole) { navigate("/admin/login"); }
+      // Super admin check by email
+      setIsSuperAdmin(user.email === "maiconinform@gmail.com");
     };
     check();
   }, [navigate]);
