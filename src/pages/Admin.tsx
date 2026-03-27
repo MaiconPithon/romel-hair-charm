@@ -38,6 +38,7 @@ const Admin = () => {
   const { data: blockedSlots, refetch: refetchBlocked } = useBlockedSlots();
   const { data: settings, refetch: refetchSettings } = useBusinessSettings();
   const { data: avaliacoes } = useAvaliacoes();
+  const { data: dailyOverrides, refetch: refetchOverrides } = useDailyOverrides();
 
   // Team state
   const [teamMembers, setTeamMembers] = useState<any[]>([]);
