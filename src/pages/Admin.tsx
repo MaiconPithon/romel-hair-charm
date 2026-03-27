@@ -265,6 +265,9 @@ const Admin = () => {
     const ds = format(date, "yyyy-MM-dd");
     const existing = dailyOverrides?.find((o: any) => o.override_date === ds);
     setOverrideDate(date);
+    setReplicateMode(false);
+    setReplicateDates([]);
+    setOverrideDate(date);
     if (existing) {
       setOverrideIsOpen(existing.is_open);
       setOverrideOpenTime(existing.open_time?.substring(0, 5) || "08:00");
