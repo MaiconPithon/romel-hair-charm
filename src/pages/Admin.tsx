@@ -7,6 +7,7 @@ import { useScheduleConfig } from "@/hooks/useScheduleConfig";
 import { useBlockedSlots } from "@/hooks/useBlockedSlots";
 import { useBusinessSettings } from "@/hooks/useBusinessSettings";
 import { useAvaliacoes } from "@/hooks/useAvaliacoes";
+import { useDailyOverrides } from "@/hooks/useDailyOverrides";
 import { useQueryClient } from "@tanstack/react-query";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
