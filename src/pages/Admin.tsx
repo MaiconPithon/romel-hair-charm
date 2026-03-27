@@ -232,6 +232,8 @@ const Admin = () => {
   const [overrideCloseTime, setOverrideCloseTime] = useState("18:00");
   const [overrideLunchStart, setOverrideLunchStart] = useState("");
   const [overrideLunchEnd, setOverrideLunchEnd] = useState("");
+  const [replicateMode, setReplicateMode] = useState(false);
+  const [replicateDates, setReplicateDates] = useState<Date[]>([]);
 
   const addBlock = async (date: Date) => {
     const ds = format(date, "yyyy-MM-dd");
@@ -811,7 +813,7 @@ const Admin = () => {
                 <h3 className="text-lg font-bold text-primary mb-2 flex items-center gap-2" style={{ fontFamily: 'Playfair Display, serif' }}>
                   📅 Gerenciar Datas
                 </h3>
-                <p className="text-sm text-muted-foreground mb-2">Clique para <strong>bloquear</strong>. Duplo-clique para <strong>editar horário especial</strong>.</p>
+                <p className="text-sm text-muted-foreground mb-2">Clique para <strong>editar horário especial</strong>. Use o switch no modal para bloquear o dia.</p>
                 <div className="flex gap-2 mb-3 flex-wrap">
                   <span className="flex items-center gap-1.5 text-xs text-muted-foreground">
                     <span className="inline-block h-3 w-3 rounded-sm" style={{ backgroundColor: 'hsl(0, 62%, 30%)' }} /> Bloqueado
@@ -823,7 +825,7 @@ const Admin = () => {
                 <Calendar
                   mode="single"
                   selected={blockDate}
-                  onSelect={(date) => { if (date) { addBlock(date); setBlockDate(undefined); } }}
+                  onSelect={(date) => { if (date) { openOverrideDialog(date); setBlockDate(undefined); } }}
                   locale={ptBR}
                   modifiers={{
                     blocked: (date) => isDateBlocked(date),
@@ -834,13 +836,6 @@ const Admin = () => {
                     override: { backgroundColor: 'hsl(45, 80%, 40%)', color: 'white', borderRadius: '0.375rem' },
                   }}
                   className="pointer-events-auto"
-                  onDayClick={(date, modifiers, e) => {
-                    // Double click opens override dialog
-                    if (e.detail === 2) {
-                      e.preventDefault();
-                      openOverrideDialog(date);
-                    }
-                  }}
                 />
                 <div className="mt-3">
                   <Button variant="outline" size="sm" className="gap-2 w-full" onClick={() => {
@@ -1512,36 +1507,90 @@ const Admin = () => {
       </Dialog>
       {/* Override Dialog */}
       <Dialog open={overrideDialog} onOpenChange={setOverrideDialog}>
-        <DialogContent className="dark">
+        <DialogContent className="dark [&_*]:text-white">
           <DialogHeader>
-            <DialogTitle>
+            <DialogTitle className="text-white font-bold">
               Horário Especial — {overrideDate ? format(overrideDate, "dd/MM/yyyy (EEEE)", { locale: ptBR }) : ""}
             </DialogTitle>
           </DialogHeader>
           <div className="space-y-4">
             <div className="flex items-center gap-3">
               <Switch checked={overrideIsOpen} onCheckedChange={setOverrideIsOpen} />
-              <span className="font-medium">{overrideIsOpen ? "Aberto" : "Fechado neste dia"}</span>
+              <span className="font-semibold text-white">{overrideIsOpen ? "Aberto" : "Fechado neste dia"}</span>
             </div>
             {overrideIsOpen && (
               <>
                 <div className="flex items-center gap-2 text-sm">
-                  <span className="text-muted-foreground w-16">Abre:</span>
-                  <Input className="w-28 bg-card" type="time" value={overrideOpenTime} onChange={(e) => setOverrideOpenTime(e.target.value)} />
-                  <span className="text-muted-foreground">até</span>
-                  <Input className="w-28 bg-card" type="time" value={overrideCloseTime} onChange={(e) => setOverrideCloseTime(e.target.value)} />
+                  <span className="text-white/70 w-16 font-semibold">Abre:</span>
+                  <Input className="w-28 bg-zinc-800 text-white border-border" style={{ color: '#FFFFFF' }} type="time" value={overrideOpenTime} onChange={(e) => setOverrideOpenTime(e.target.value)} />
+                  <span className="text-white/70 font-semibold">até</span>
+                  <Input className="w-28 bg-zinc-800 text-white border-border" style={{ color: '#FFFFFF' }} type="time" value={overrideCloseTime} onChange={(e) => setOverrideCloseTime(e.target.value)} />
                 </div>
                 <div className="flex items-center gap-2 text-sm">
-                  <span className="text-red-400 w-16 text-xs">Pausa:</span>
-                  <Input className="w-28 bg-card" type="time" value={overrideLunchStart} placeholder="--:--" onChange={(e) => setOverrideLunchStart(e.target.value)} />
-                  <span className="text-muted-foreground">até</span>
-                  <Input className="w-28 bg-card" type="time" value={overrideLunchEnd} placeholder="--:--" onChange={(e) => setOverrideLunchEnd(e.target.value)} />
+                  <span className="text-red-400 w-16 text-xs font-semibold">Pausa:</span>
+                  <Input className="w-28 bg-zinc-800 text-white border-border" style={{ color: '#FFFFFF' }} type="time" value={overrideLunchStart} placeholder="--:--" onChange={(e) => setOverrideLunchStart(e.target.value)} />
+                  <span className="text-white/70 font-semibold">até</span>
+                  <Input className="w-28 bg-zinc-800 text-white border-border" style={{ color: '#FFFFFF' }} type="time" value={overrideLunchEnd} placeholder="--:--" onChange={(e) => setOverrideLunchEnd(e.target.value)} />
                 </div>
               </>
             )}
-            <p className="text-xs text-muted-foreground">Este horário vale apenas para esta data específica, sem alterar o padrão semanal.</p>
+            <p className="text-xs text-white/50 font-medium">Este horário vale apenas para esta data específica, sem alterar o padrão semanal.</p>
+            
+            {/* Replicate to other dates */}
+            <div className="border-t border-border pt-3">
+              <button
+                type="button"
+                className="text-sm font-semibold text-yellow-400 hover:text-yellow-300 flex items-center gap-1.5 mb-2"
+                onClick={() => setReplicateMode(!replicateMode)}
+              >
+                <Copy className="h-3.5 w-3.5" /> Replicar para outras datas
+              </button>
+              {replicateMode && (
+                <div className="space-y-2">
+                  <p className="text-xs text-white/50">Selecione as datas para copiar este horário:</p>
+                  <Calendar
+                    mode="multiple"
+                    selected={replicateDates}
+                    onSelect={(dates) => setReplicateDates(dates || [])}
+                    locale={ptBR}
+                    fromDate={new Date()}
+                    className="rounded-lg border border-border bg-zinc-900 p-2 [&_*]:!text-white"
+                  />
+                  {replicateDates.length > 0 && (
+                    <p className="text-xs text-yellow-400 font-medium">{replicateDates.length} data(s) selecionada(s)</p>
+                  )}
+                </div>
+              )}
+            </div>
+
             <div className="flex gap-2">
-              <Button onClick={saveOverride} className="flex-1">Salvar Horário Especial</Button>
+              <Button onClick={async () => {
+                await saveOverride();
+                if (replicateMode && replicateDates.length > 0 && overrideDate) {
+                  for (const rd of replicateDates) {
+                    const rds = format(rd, "yyyy-MM-dd");
+                    if (rds === format(overrideDate, "yyyy-MM-dd")) continue;
+                    const payload: any = {
+                      override_date: rds,
+                      is_open: overrideIsOpen,
+                      open_time: overrideOpenTime,
+                      close_time: overrideCloseTime,
+                      lunch_start: overrideLunchStart || null,
+                      lunch_end: overrideLunchEnd || null,
+                    };
+                    const existing = dailyOverrides?.find((o: any) => o.override_date === rds);
+                    if (existing) {
+                      await (supabase.from("daily_overrides" as any) as any).update(payload).eq("id", existing.id);
+                    } else {
+                      await (supabase.from("daily_overrides" as any) as any).insert(payload);
+                    }
+                  }
+                  refetchOverrides();
+                  toast.success(`Horário replicado para ${replicateDates.length} data(s)!`);
+                  setReplicateMode(false);
+                  setReplicateDates([]);
+                }
+              }} className="flex-1">Salvar Horário Especial</Button>
               {dailyOverrides?.some((o: any) => o.override_date === (overrideDate ? format(overrideDate, "yyyy-MM-dd") : "")) && (
                 <Button variant="destructive" onClick={deleteOverride}>Remover</Button>
               )}
