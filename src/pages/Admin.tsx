@@ -225,6 +225,13 @@ const Admin = () => {
 
   // Blocked slots
   const [blockDate, setBlockDate] = useState<Date | undefined>();
+  const [overrideDialog, setOverrideDialog] = useState(false);
+  const [overrideDate, setOverrideDate] = useState<Date | undefined>();
+  const [overrideIsOpen, setOverrideIsOpen] = useState(true);
+  const [overrideOpenTime, setOverrideOpenTime] = useState("08:00");
+  const [overrideCloseTime, setOverrideCloseTime] = useState("18:00");
+  const [overrideLunchStart, setOverrideLunchStart] = useState("");
+  const [overrideLunchEnd, setOverrideLunchEnd] = useState("");
 
   const addBlock = async (date: Date) => {
     const ds = format(date, "yyyy-MM-dd");
