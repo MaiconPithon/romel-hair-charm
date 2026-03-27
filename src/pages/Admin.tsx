@@ -1510,6 +1510,45 @@ const Admin = () => {
           </div>
         </DialogContent>
       </Dialog>
+      {/* Override Dialog */}
+      <Dialog open={overrideDialog} onOpenChange={setOverrideDialog}>
+        <DialogContent className="dark">
+          <DialogHeader>
+            <DialogTitle>
+              Horário Especial — {overrideDate ? format(overrideDate, "dd/MM/yyyy (EEEE)", { locale: ptBR }) : ""}
+            </DialogTitle>
+          </DialogHeader>
+          <div className="space-y-4">
+            <div className="flex items-center gap-3">
+              <Switch checked={overrideIsOpen} onCheckedChange={setOverrideIsOpen} />
+              <span className="font-medium">{overrideIsOpen ? "Aberto" : "Fechado neste dia"}</span>
+            </div>
+            {overrideIsOpen && (
+              <>
+                <div className="flex items-center gap-2 text-sm">
+                  <span className="text-muted-foreground w-16">Abre:</span>
+                  <Input className="w-28 bg-card" type="time" value={overrideOpenTime} onChange={(e) => setOverrideOpenTime(e.target.value)} />
+                  <span className="text-muted-foreground">até</span>
+                  <Input className="w-28 bg-card" type="time" value={overrideCloseTime} onChange={(e) => setOverrideCloseTime(e.target.value)} />
+                </div>
+                <div className="flex items-center gap-2 text-sm">
+                  <span className="text-red-400 w-16 text-xs">Pausa:</span>
+                  <Input className="w-28 bg-card" type="time" value={overrideLunchStart} placeholder="--:--" onChange={(e) => setOverrideLunchStart(e.target.value)} />
+                  <span className="text-muted-foreground">até</span>
+                  <Input className="w-28 bg-card" type="time" value={overrideLunchEnd} placeholder="--:--" onChange={(e) => setOverrideLunchEnd(e.target.value)} />
+                </div>
+              </>
+            )}
+            <p className="text-xs text-muted-foreground">Este horário vale apenas para esta data específica, sem alterar o padrão semanal.</p>
+            <div className="flex gap-2">
+              <Button onClick={saveOverride} className="flex-1">Salvar Horário Especial</Button>
+              {dailyOverrides?.some((o: any) => o.override_date === (overrideDate ? format(overrideDate, "yyyy-MM-dd") : "")) && (
+                <Button variant="destructive" onClick={deleteOverride}>Remover</Button>
+              )}
+            </div>
+          </div>
+        </DialogContent>
+      </Dialog>
     </div>
   );
 };
