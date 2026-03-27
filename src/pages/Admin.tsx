@@ -254,6 +254,67 @@ const Admin = () => {
     return blockedSlots?.some(b => b.blocked_date === ds && b.all_day) || false;
   };
 
+  const hasOverride = (date: Date) => {
+    const ds = format(date, "yyyy-MM-dd");
+    return dailyOverrides?.some((o: any) => o.override_date === ds) || false;
+  };
+
+  const openOverrideDialog = (date: Date) => {
+    const ds = format(date, "yyyy-MM-dd");
+    const existing = dailyOverrides?.find((o: any) => o.override_date === ds);
+    setOverrideDate(date);
+    if (existing) {
+      setOverrideIsOpen(existing.is_open);
+      setOverrideOpenTime(existing.open_time?.substring(0, 5) || "08:00");
+      setOverrideCloseTime(existing.close_time?.substring(0, 5) || "18:00");
+      setOverrideLunchStart(existing.lunch_start?.substring(0, 5) || "");
+      setOverrideLunchEnd(existing.lunch_end?.substring(0, 5) || "");
+    } else {
+      // Pre-fill from weekly config
+      const dow = getDay(date);
+      const weeklyConfig = schedule?.find(c => c.day_of_week === dow);
+      setOverrideIsOpen(weeklyConfig?.is_open ?? true);
+      setOverrideOpenTime(weeklyConfig?.open_time?.substring(0, 5) || "08:00");
+      setOverrideCloseTime(weeklyConfig?.close_time?.substring(0, 5) || "18:00");
+      setOverrideLunchStart(weeklyConfig?.lunch_start?.substring(0, 5) || "");
+      setOverrideLunchEnd(weeklyConfig?.lunch_end?.substring(0, 5) || "");
+    }
+    setOverrideDialog(true);
+  };
+
+  const saveOverride = async () => {
+    if (!overrideDate) return;
+    const ds = format(overrideDate, "yyyy-MM-dd");
+    const payload: any = {
+      override_date: ds,
+      is_open: overrideIsOpen,
+      open_time: overrideOpenTime,
+      close_time: overrideCloseTime,
+      lunch_start: overrideLunchStart || null,
+      lunch_end: overrideLunchEnd || null,
+    };
+    const existing = dailyOverrides?.find((o: any) => o.override_date === ds);
+    if (existing) {
+      await (supabase.from("daily_overrides" as any) as any).update(payload).eq("id", existing.id);
+    } else {
+      await (supabase.from("daily_overrides" as any) as any).insert(payload);
+    }
+    setOverrideDialog(false);
+    refetchOverrides();
+    toast.success("Horário especial salvo para " + format(overrideDate, "dd/MM"));
+  };
+
+  const deleteOverride = async () => {
+    if (!overrideDate) return;
+    const ds = format(overrideDate, "yyyy-MM-dd");
+    const existing = dailyOverrides?.find((o: any) => o.override_date === ds);
+    if (existing) {
+      await (supabase.from("daily_overrides" as any) as any).delete().eq("id", existing.id);
+      refetchOverrides();
+      toast.success("Horário especial removido.");
+    }
+    setOverrideDialog(false);
+  };
   // Business settings
   const [settingsLocal, setSettingsLocal] = useState<Record<string, string>>({});
   useEffect(() => { if (settings) setSettingsLocal(settings); }, [settings]);
