@@ -101,7 +101,7 @@ const Agendar = () => {
     const slotStep = 5;
 
     const now = new Date();
-    const ds = format(selectedDate, "yyyy-MM-dd");
+    const dateStr2 = ds;
     const todayStr = format(now, "yyyy-MM-dd");
     const nowMin = now.getHours() * 60 + now.getMinutes();
 
