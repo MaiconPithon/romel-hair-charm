@@ -128,6 +128,39 @@ export type Database = {
         }
         Relationships: []
       }
+      daily_overrides: {
+        Row: {
+          close_time: string
+          created_at: string
+          id: string
+          is_open: boolean
+          lunch_end: string | null
+          lunch_start: string | null
+          open_time: string
+          override_date: string
+        }
+        Insert: {
+          close_time?: string
+          created_at?: string
+          id?: string
+          is_open?: boolean
+          lunch_end?: string | null
+          lunch_start?: string | null
+          open_time?: string
+          override_date: string
+        }
+        Update: {
+          close_time?: string
+          created_at?: string
+          id?: string
+          is_open?: boolean
+          lunch_end?: string | null
+          lunch_start?: string | null
+          open_time?: string
+          override_date?: string
+        }
+        Relationships: []
+      }
       schedule_config: {
         Row: {
           close_time: string
