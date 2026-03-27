@@ -19,7 +19,7 @@ import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/u
 import { Calendar } from "@/components/ui/calendar";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { toast } from "sonner";
-import { format } from "date-fns";
+import { format, getDay } from "date-fns";
 import { ptBR } from "date-fns/locale";
 import { LogOut, Plus, Trash2, Edit2, Home, CalendarIcon, Star, DollarSign, MessageCircle, Key, Clock, Settings, Palette, Users, Zap, Filter, AlertTriangle, FileText, ClipboardList, Printer } from "lucide-react";
 import { cn } from "@/lib/utils";
