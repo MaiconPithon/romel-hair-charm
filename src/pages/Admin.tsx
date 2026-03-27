@@ -7,6 +7,7 @@ import { useScheduleConfig } from "@/hooks/useScheduleConfig";
 import { useBlockedSlots } from "@/hooks/useBlockedSlots";
 import { useBusinessSettings } from "@/hooks/useBusinessSettings";
 import { useAvaliacoes } from "@/hooks/useAvaliacoes";
+import { useDailyOverrides } from "@/hooks/useDailyOverrides";
 import { useQueryClient } from "@tanstack/react-query";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -18,7 +19,7 @@ import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/u
 import { Calendar } from "@/components/ui/calendar";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { toast } from "sonner";
-import { format } from "date-fns";
+import { format, getDay } from "date-fns";
 import { ptBR } from "date-fns/locale";
 import { LogOut, Plus, Trash2, Edit2, Home, CalendarIcon, Star, DollarSign, MessageCircle, Key, Clock, Settings, Palette, Users, Zap, Filter, AlertTriangle, FileText, ClipboardList, Printer } from "lucide-react";
 import { cn } from "@/lib/utils";
@@ -37,6 +38,7 @@ const Admin = () => {
   const { data: blockedSlots, refetch: refetchBlocked } = useBlockedSlots();
   const { data: settings, refetch: refetchSettings } = useBusinessSettings();
   const { data: avaliacoes } = useAvaliacoes();
+  const { data: dailyOverrides, refetch: refetchOverrides } = useDailyOverrides();
 
   // Team state
   const [teamMembers, setTeamMembers] = useState<any[]>([]);
@@ -223,6 +225,13 @@ const Admin = () => {
 
   // Blocked slots
   const [blockDate, setBlockDate] = useState<Date | undefined>();
+  const [overrideDialog, setOverrideDialog] = useState(false);
+  const [overrideDate, setOverrideDate] = useState<Date | undefined>();
+  const [overrideIsOpen, setOverrideIsOpen] = useState(true);
+  const [overrideOpenTime, setOverrideOpenTime] = useState("08:00");
+  const [overrideCloseTime, setOverrideCloseTime] = useState("18:00");
+  const [overrideLunchStart, setOverrideLunchStart] = useState("");
+  const [overrideLunchEnd, setOverrideLunchEnd] = useState("");
 
   const addBlock = async (date: Date) => {
     const ds = format(date, "yyyy-MM-dd");
@@ -245,6 +254,67 @@ const Admin = () => {
     return blockedSlots?.some(b => b.blocked_date === ds && b.all_day) || false;
   };
 
+  const hasOverride = (date: Date) => {
+    const ds = format(date, "yyyy-MM-dd");
+    return dailyOverrides?.some((o: any) => o.override_date === ds) || false;
+  };
+
+  const openOverrideDialog = (date: Date) => {
+    const ds = format(date, "yyyy-MM-dd");
+    const existing = dailyOverrides?.find((o: any) => o.override_date === ds);
+    setOverrideDate(date);
+    if (existing) {
+      setOverrideIsOpen(existing.is_open);
+      setOverrideOpenTime(existing.open_time?.substring(0, 5) || "08:00");
+      setOverrideCloseTime(existing.close_time?.substring(0, 5) || "18:00");
+      setOverrideLunchStart(existing.lunch_start?.substring(0, 5) || "");
+      setOverrideLunchEnd(existing.lunch_end?.substring(0, 5) || "");
+    } else {
+      // Pre-fill from weekly config
+      const dow = getDay(date);
+      const weeklyConfig = schedule?.find(c => c.day_of_week === dow);
+      setOverrideIsOpen(weeklyConfig?.is_open ?? true);
+      setOverrideOpenTime(weeklyConfig?.open_time?.substring(0, 5) || "08:00");
+      setOverrideCloseTime(weeklyConfig?.close_time?.substring(0, 5) || "18:00");
+      setOverrideLunchStart(weeklyConfig?.lunch_start?.substring(0, 5) || "");
+      setOverrideLunchEnd(weeklyConfig?.lunch_end?.substring(0, 5) || "");
+    }
+    setOverrideDialog(true);
+  };
+
+  const saveOverride = async () => {
+    if (!overrideDate) return;
+    const ds = format(overrideDate, "yyyy-MM-dd");
+    const payload: any = {
+      override_date: ds,
+      is_open: overrideIsOpen,
+      open_time: overrideOpenTime,
+      close_time: overrideCloseTime,
+      lunch_start: overrideLunchStart || null,
+      lunch_end: overrideLunchEnd || null,
+    };
+    const existing = dailyOverrides?.find((o: any) => o.override_date === ds);
+    if (existing) {
+      await (supabase.from("daily_overrides" as any) as any).update(payload).eq("id", existing.id);
+    } else {
+      await (supabase.from("daily_overrides" as any) as any).insert(payload);
+    }
+    setOverrideDialog(false);
+    refetchOverrides();
+    toast.success("Horário especial salvo para " + format(overrideDate, "dd/MM"));
+  };
+
+  const deleteOverride = async () => {
+    if (!overrideDate) return;
+    const ds = format(overrideDate, "yyyy-MM-dd");
+    const existing = dailyOverrides?.find((o: any) => o.override_date === ds);
+    if (existing) {
+      await (supabase.from("daily_overrides" as any) as any).delete().eq("id", existing.id);
+      refetchOverrides();
+      toast.success("Horário especial removido.");
+    }
+    setOverrideDialog(false);
+  };
   // Business settings
   const [settingsLocal, setSettingsLocal] = useState<Record<string, string>>({});
   useEffect(() => { if (settings) setSettingsLocal(settings); }, [settings]);
@@ -736,29 +806,84 @@ const Admin = () => {
                 </div>
               </div>
 
-              {/* Block dates */}
+              {/* Block dates + Override */}
               <div className="rounded-lg border border-border bg-card p-5">
                 <h3 className="text-lg font-bold text-primary mb-2 flex items-center gap-2" style={{ fontFamily: 'Playfair Display, serif' }}>
-                  🚫 Bloquear Data
+                  📅 Gerenciar Datas
                 </h3>
-                <p className="text-sm text-muted-foreground mb-4">Bloqueie datas para imprevistos, feriados ou folgas.</p>
+                <p className="text-sm text-muted-foreground mb-2">Clique para <strong>bloquear</strong>. Duplo-clique para <strong>editar horário especial</strong>.</p>
+                <div className="flex gap-2 mb-3 flex-wrap">
+                  <span className="flex items-center gap-1.5 text-xs text-muted-foreground">
+                    <span className="inline-block h-3 w-3 rounded-sm" style={{ backgroundColor: 'hsl(0, 62%, 30%)' }} /> Bloqueado
+                  </span>
+                  <span className="flex items-center gap-1.5 text-xs text-muted-foreground">
+                    <span className="inline-block h-3 w-3 rounded-sm" style={{ backgroundColor: 'hsl(45, 80%, 40%)' }} /> Horário Especial
+                  </span>
+                </div>
                 <Calendar
                   mode="single"
                   selected={blockDate}
                   onSelect={(date) => { if (date) { addBlock(date); setBlockDate(undefined); } }}
                   locale={ptBR}
-                  modifiers={{ blocked: (date) => isDateBlocked(date) }}
-                  modifiersStyles={{ blocked: { backgroundColor: 'hsl(0, 62%, 30%)', color: 'white', borderRadius: '0.375rem' } }}
+                  modifiers={{
+                    blocked: (date) => isDateBlocked(date),
+                    override: (date) => hasOverride(date),
+                  }}
+                  modifiersStyles={{
+                    blocked: { backgroundColor: 'hsl(0, 62%, 30%)', color: 'white', borderRadius: '0.375rem' },
+                    override: { backgroundColor: 'hsl(45, 80%, 40%)', color: 'white', borderRadius: '0.375rem' },
+                  }}
                   className="pointer-events-auto"
+                  onDayClick={(date, modifiers, e) => {
+                    // Double click opens override dialog
+                    if (e.detail === 2) {
+                      e.preventDefault();
+                      openOverrideDialog(date);
+                    }
+                  }}
                 />
+                <div className="mt-3">
+                  <Button variant="outline" size="sm" className="gap-2 w-full" onClick={() => {
+                    const tomorrow = new Date();
+                    tomorrow.setDate(tomorrow.getDate() + 1);
+                    openOverrideDialog(tomorrow);
+                  }}>
+                    <Clock className="h-3.5 w-3.5" /> Editar Horário de Data Específica
+                  </Button>
+                </div>
                 {blockedSlots && blockedSlots.length > 0 && (
                   <div className="mt-4 space-y-1">
+                    <p className="text-xs font-semibold text-muted-foreground mb-1">Datas bloqueadas:</p>
                     {blockedSlots.map(b => (
                       <div key={b.id} className="flex items-center justify-between text-sm">
                         <span>{b.blocked_date} {b.reason && `— ${b.reason}`}</span>
                         <Button size="icon" variant="ghost" className="h-6 w-6" onClick={() => { supabase.from("blocked_slots").delete().eq("id", b.id).then(() => refetchBlocked()); }}>
                           <Trash2 className="h-3 w-3" />
                         </Button>
+                      </div>
+                    ))}
+                  </div>
+                )}
+                {dailyOverrides && dailyOverrides.length > 0 && (
+                  <div className="mt-4 space-y-1">
+                    <p className="text-xs font-semibold text-muted-foreground mb-1">Horários especiais:</p>
+                    {dailyOverrides.map((o: any) => (
+                      <div key={o.id} className="flex items-center justify-between text-sm">
+                        <span>
+                          {o.override_date} — {o.is_open ? `${o.open_time?.substring(0,5)} às ${o.close_time?.substring(0,5)}` : "Fechado"}
+                        </span>
+                        <div className="flex gap-1">
+                          <Button size="icon" variant="ghost" className="h-6 w-6" onClick={() => openOverrideDialog(new Date(o.override_date + "T12:00:00"))}>
+                            <Edit2 className="h-3 w-3" />
+                          </Button>
+                          <Button size="icon" variant="ghost" className="h-6 w-6" onClick={async () => {
+                            await (supabase.from("daily_overrides" as any) as any).delete().eq("id", o.id);
+                            refetchOverrides();
+                            toast.success("Horário especial removido.");
+                          }}>
+                            <Trash2 className="h-3 w-3 text-red-400" />
+                          </Button>
+                        </div>
                       </div>
                     ))}
                   </div>
@@ -1382,6 +1507,45 @@ const Admin = () => {
               </select>
             </div>
             <Button onClick={saveService} className="w-full">Salvar</Button>
+          </div>
+        </DialogContent>
+      </Dialog>
+      {/* Override Dialog */}
+      <Dialog open={overrideDialog} onOpenChange={setOverrideDialog}>
+        <DialogContent className="dark">
+          <DialogHeader>
+            <DialogTitle>
+              Horário Especial — {overrideDate ? format(overrideDate, "dd/MM/yyyy (EEEE)", { locale: ptBR }) : ""}
+            </DialogTitle>
+          </DialogHeader>
+          <div className="space-y-4">
+            <div className="flex items-center gap-3">
+              <Switch checked={overrideIsOpen} onCheckedChange={setOverrideIsOpen} />
+              <span className="font-medium">{overrideIsOpen ? "Aberto" : "Fechado neste dia"}</span>
+            </div>
+            {overrideIsOpen && (
+              <>
+                <div className="flex items-center gap-2 text-sm">
+                  <span className="text-muted-foreground w-16">Abre:</span>
+                  <Input className="w-28 bg-card" type="time" value={overrideOpenTime} onChange={(e) => setOverrideOpenTime(e.target.value)} />
+                  <span className="text-muted-foreground">até</span>
+                  <Input className="w-28 bg-card" type="time" value={overrideCloseTime} onChange={(e) => setOverrideCloseTime(e.target.value)} />
+                </div>
+                <div className="flex items-center gap-2 text-sm">
+                  <span className="text-red-400 w-16 text-xs">Pausa:</span>
+                  <Input className="w-28 bg-card" type="time" value={overrideLunchStart} placeholder="--:--" onChange={(e) => setOverrideLunchStart(e.target.value)} />
+                  <span className="text-muted-foreground">até</span>
+                  <Input className="w-28 bg-card" type="time" value={overrideLunchEnd} placeholder="--:--" onChange={(e) => setOverrideLunchEnd(e.target.value)} />
+                </div>
+              </>
+            )}
+            <p className="text-xs text-muted-foreground">Este horário vale apenas para esta data específica, sem alterar o padrão semanal.</p>
+            <div className="flex gap-2">
+              <Button onClick={saveOverride} className="flex-1">Salvar Horário Especial</Button>
+              {dailyOverrides?.some((o: any) => o.override_date === (overrideDate ? format(overrideDate, "yyyy-MM-dd") : "")) && (
+                <Button variant="destructive" onClick={deleteOverride}>Remover</Button>
+              )}
+            </div>
           </div>
         </DialogContent>
       </Dialog>
