@@ -166,12 +166,21 @@ const Agendar = () => {
     // Disable if date is in the past or beyond 7 days from today
     if (date < today || date > sevenDaysFromNow) return true;
 
+    const dateStr = format(date, "yyyy-MM-dd");
+
+    // Check if blocked
+    if (blocked?.some((b) => b.blocked_date === dateStr && b.all_day)) return true;
+
+    // Check daily override first
+    const override = dailyOverrides?.find((o: any) => o.override_date === dateStr);
+    if (override) return !override.is_open;
+
+    // Fall back to weekly schedule
     const dow = getDay(date);
     const config = schedule?.find((c) => c.day_of_week === dow);
     if (!config || !config.is_open) return true;
 
-    const ds = format(date, "yyyy-MM-dd");
-    return !!blocked?.some((b) => b.blocked_date === ds && b.all_day);
+    return false;
   };
 
   const handleSubmit = async () => {
