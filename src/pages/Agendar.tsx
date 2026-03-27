@@ -33,6 +33,7 @@ const Agendar = () => {
   const { data: schedule } = useScheduleConfig();
   const { data: blocked } = useBlockedSlots();
   const { data: settings } = useBusinessSettings();
+  const { data: dailyOverrides } = useDailyOverrides();
 
   const [step, setStep] = useState<Step>("service");
   const [selectedServices, setSelectedServices] = useState<string[]>([]);
