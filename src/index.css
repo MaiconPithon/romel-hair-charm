@@ -119,20 +119,32 @@
     filter: invert(1);
   }
 
-  /* Calendar: force white text on available days for mobile contrast */
-  .dark .rdp-day:not([disabled]):not([aria-selected="true"]) {
+  /* Calendar: force white text on all active/clickable days */
+  .rdp-day:not([disabled]):not([aria-selected="true"]),
+  .dark .rdp-day:not([disabled]):not([aria-selected="true"]),
+  .rdp button.rdp-day:not([disabled]):not([aria-selected="true"]) {
     color: #FFFFFF !important;
   }
+  .rdp-day[disabled],
   .dark .rdp-day[disabled] {
     color: rgba(255, 255, 255, 0.25) !important;
+    opacity: 0.4 !important;
   }
+  .rdp-head_cell,
   .dark .rdp-head_cell {
     color: rgba(255, 255, 255, 0.7) !important;
   }
+  .rdp-caption_label,
   .dark .rdp-caption_label {
     color: #FFFFFF !important;
   }
+  .rdp-nav_button,
   .dark .rdp-nav_button {
+    color: #FFFFFF !important;
+  }
+  /* Ensure selected day keeps white foreground */
+  .rdp-day[aria-selected="true"],
+  .dark .rdp-day[aria-selected="true"] {
     color: #FFFFFF !important;
   }
 }
