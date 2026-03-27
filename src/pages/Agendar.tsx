@@ -64,16 +64,38 @@ const Agendar = () => {
   const generateSlots = (): SlotInfo[] => {
     if (!selectedDate || !schedule) return [];
     const dow = getDay(selectedDate);
-    const config = schedule.find((c) => c.day_of_week === dow);
-    if (!config || !config.is_open) return [];
+    const ds = format(selectedDate, "yyyy-MM-dd");
 
-    const [oh, om] = config.open_time.split(":").map(Number);
-    const [ch, cm] = config.close_time.split(":").map(Number);
+    // Priority 1: Check daily override for this specific date
+    const override = dailyOverrides?.find((o: any) => o.override_date === ds);
+    let openTime: string, closeTime: string, lunchStartStr: string | null, lunchEndStr: string | null, isOpen: boolean;
+
+    if (override) {
+      isOpen = override.is_open;
+      openTime = override.open_time;
+      closeTime = override.close_time;
+      lunchStartStr = override.lunch_start;
+      lunchEndStr = override.lunch_end;
+    } else {
+      // Priority 2: Use weekly schedule config
+      const config = schedule.find((c) => c.day_of_week === dow);
+      if (!config || !config.is_open) return [];
+      isOpen = config.is_open;
+      openTime = config.open_time;
+      closeTime = config.close_time;
+      lunchStartStr = config.lunch_start;
+      lunchEndStr = config.lunch_end;
+    }
+
+    if (!isOpen) return [];
+
+    const [oh, om] = openTime.split(":").map(Number);
+    const [ch, cm] = closeTime.split(":").map(Number);
     const openMin = oh * 60 + om;
     const closeMin = ch * 60 + cm;
 
-    const lunchStart = config.lunch_start ? (() => { const [h, m] = config.lunch_start!.split(":").map(Number); return h * 60 + m; })() : null;
-    const lunchEnd = config.lunch_end ? (() => { const [h, m] = config.lunch_end!.split(":").map(Number); return h * 60 + m; })() : null;
+    const lunchStart = lunchStartStr ? (() => { const [h, m] = lunchStartStr!.split(":").map(Number); return h * 60 + m; })() : null;
+    const lunchEnd = lunchEndStr ? (() => { const [h, m] = lunchEndStr!.split(":").map(Number); return h * 60 + m; })() : null;
 
     // Use 5-min granularity to support 10-min services precisely
     const slotStep = 5;
