@@ -380,7 +380,7 @@ const Agendar = () => {
                 disabled={isDateDisabled}
                 fromDate={new Date()}
                 toDate={addDays(new Date(), 7)}
-                className="rounded-2xl border border-white/5 bg-black/40 backdrop-blur-xl p-4 shadow-2xl"
+                className="rounded-2xl border border-white/5 bg-black/40 backdrop-blur-xl p-4 shadow-2xl [&_.rdp-day:not([disabled])]:!text-white [&_.rdp-day:not([disabled])]:font-bold [&_.rdp-head_cell]:!text-white/70 [&_.rdp-caption_label]:!text-white [&_.rdp-nav_button]:!text-white"
                 locale={ptBR}
               />
             </div>

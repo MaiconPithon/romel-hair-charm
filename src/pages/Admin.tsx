@@ -351,6 +351,17 @@ const Admin = () => {
 
   const handleQuickSale = async () => {
     try {
+      // Validate: if date is today, prevent past times
+      const nowCheck = new Date();
+      const todayCheck = format(nowCheck, "yyyy-MM-dd");
+      if (qsDate === todayCheck) {
+        const currentMin = nowCheck.getHours() * 60 + nowCheck.getMinutes();
+        const selectedMin = Number(qsHour) * 60 + Number(qsMinute);
+        if (selectedMin < currentMin) {
+          toast.error("Horário no passado! Selecione um horário a partir de agora.");
+          return;
+        }
+      }
       const catalogChosen = services?.filter((s) => qsServiceIds.includes(s.id)) || [];
       const allNames = [...catalogChosen.map((s) => s.name), ...qsCustomServices.map((s) => s.name)];
       const estimatedCustomDuration = qsCustomServices.length * 30;

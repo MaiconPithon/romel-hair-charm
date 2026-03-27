@@ -118,4 +118,21 @@
   input[type="month"]::-webkit-calendar-picker-indicator {
     filter: invert(1);
   }
+
+  /* Calendar: force white text on available days for mobile contrast */
+  .dark .rdp-day:not([disabled]):not([aria-selected="true"]) {
+    color: #FFFFFF !important;
+  }
+  .dark .rdp-day[disabled] {
+    color: rgba(255, 255, 255, 0.25) !important;
+  }
+  .dark .rdp-head_cell {
+    color: rgba(255, 255, 255, 0.7) !important;
+  }
+  .dark .rdp-caption_label {
+    color: #FFFFFF !important;
+  }
+  .dark .rdp-nav_button {
+    color: #FFFFFF !important;
+  }
 }
