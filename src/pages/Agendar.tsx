@@ -5,6 +5,7 @@ import { useScheduleConfig } from "@/hooks/useScheduleConfig";
 import { useBlockedSlots } from "@/hooks/useBlockedSlots";
 import { useAppointments } from "@/hooks/useAppointments";
 import { useBusinessSettings } from "@/hooks/useBusinessSettings";
+import { useDailyOverrides } from "@/hooks/useDailyOverrides";
 import { supabase } from "@/integrations/supabase/client";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
