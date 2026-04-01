@@ -5,12 +5,22 @@ export function useDailyOverrides() {
   return useQuery({
     queryKey: ["daily_overrides"],
     queryFn: async () => {
-      const { data, error } = await supabase
-        .from("daily_overrides" as any)
-        .select("*")
-        .order("override_date");
-      if (error) throw error;
-      return data as any[];
+      try {
+        const { data, error } = await supabase
+          .from("daily_overrides")
+          .select("*")
+          .order("override_date");
+        if (error) {
+          console.error("[useDailyOverrides] Supabase error:", error);
+          return [];
+        }
+        return data ?? [];
+      } catch (e) {
+        console.error("[useDailyOverrides] Unexpected error:", e);
+        return [];
+      }
     },
+    staleTime: 0,
+    gcTime: 0,
   });
 }
