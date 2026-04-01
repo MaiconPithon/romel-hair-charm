@@ -118,10 +118,9 @@ const Agendar = () => {
       const slotStep = 5;
       const now = new Date();
       const todayStr = format(now, "yyyy-MM-dd");
-      const nowMin = now.getHours() * 60 + now.getMinutes();
+      const nowMin = now.getHours() * 60 + now.getMinutes() + bufferMinutes;
 
       const occupiedIntervals = (dayAppointments || [])
-        .filter((a) => a?.status !== "cancelado")
         .map((a) => {
           const parts = a?.appointment_time?.split(":").map(Number) || [0, 0];
           const aStart = (parts[0] || 0) * 60 + (parts[1] || 0);
@@ -252,7 +251,7 @@ const Agendar = () => {
       case "time": return !!selectedTime;
       case "info": return clientName.trim().length > 0 && clientPhone.trim().length >= 10;
       case "payment": return true;
-      case "confirm": return true;
+      case "confirm": return !!selectedDate && !!selectedTime && selectedServices.length > 0 && totalDuration > 0;
       default: return false;
     }
   };
