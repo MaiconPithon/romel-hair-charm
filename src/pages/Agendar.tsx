@@ -251,7 +251,7 @@ const Agendar = () => {
       case "time": return !!selectedTime;
       case "info": return clientName.trim().length > 0 && clientPhone.trim().length >= 10;
       case "payment": return true;
-      case "confirm": return true;
+      case "confirm": return !!selectedDate && !!selectedTime && selectedServices.length > 0 && totalDuration > 0;
       default: return false;
     }
   };
