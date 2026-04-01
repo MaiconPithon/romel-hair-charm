@@ -13,10 +13,12 @@ import { Checkbox } from "@/components/ui/checkbox";
 import { Calendar } from "@/components/ui/calendar";
 import { StarRating } from "@/components/StarRating";
 import { WhatsAppButton } from "@/components/WhatsAppButton";
+import { Skeleton } from "@/components/ui/skeleton";
+import ErrorBoundary from "@/components/ErrorBoundary";
 import { cn } from "@/lib/utils";
-import { format, addDays, getDay, startOfWeek, endOfWeek } from "date-fns";
+import { format, addDays, getDay } from "date-fns";
 import { ptBR } from "date-fns/locale";
-import { ArrowLeft, Check, ChevronRight, MessageCircle, Clock, Copy, X } from "lucide-react";
+import { ArrowLeft, Check, ChevronRight, Clock, Copy, X } from "lucide-react";
 import { toast } from "sonner";
 import { QRCodeSVG } from "qrcode.react";
 import romelBg from "@/assets/romel-bg.jpg";
@@ -26,14 +28,21 @@ type Step = "service" | "date" | "time" | "info" | "payment" | "confirm" | "done
 
 const STEPS: Step[] = ["service", "date", "time", "info", "payment", "confirm"];
 
+/** Safe date helper – never returns Invalid Date */
+const safeDate = (v?: string | Date | null): Date => {
+  if (!v) return new Date();
+  const d = new Date(v);
+  return Number.isNaN(d.getTime()) ? new Date() : d;
+};
+
 const Agendar = () => {
   const navigate = useNavigate();
   const [searchParams] = useSearchParams();
-  const { data: services } = useServices();
-  const { data: schedule } = useScheduleConfig();
+  const { data: services, isLoading: loadingServices } = useServices();
+  const { data: schedule, isLoading: loadingSchedule } = useScheduleConfig();
   const { data: blocked } = useBlockedSlots();
   const { data: settings } = useBusinessSettings();
-  const { data: dailyOverrides } = useDailyOverrides();
+  const { data: dailyOverrides, isLoading: loadingOverrides } = useDailyOverrides();
 
   const [step, setStep] = useState<Step>("service");
   const [selectedServices, setSelectedServices] = useState<string[]>([]);
@@ -54,140 +63,142 @@ const Agendar = () => {
 
   const currentStepIndex = STEPS.indexOf(step);
 
-  // Get buffer from settings or default 45 min
   const bufferMinutes = settings?.buffer_minutes ? parseInt(settings.buffer_minutes) : 45;
   const primaryColor = settings?.primary_color || "#d1b122";
+
+  const isDataReady = !loadingServices && !loadingSchedule && !loadingOverrides;
 
   // Generate time slots with availability info
   type SlotInfo = { time: string; available: boolean; reason?: string };
 
   const generateSlots = (): SlotInfo[] => {
-    if (!selectedDate || !schedule) return [];
-    const dow = getDay(selectedDate);
-    const ds = format(selectedDate, "yyyy-MM-dd");
+    try {
+      if (!selectedDate || !schedule?.length) return [];
+      const dow = getDay(selectedDate);
+      const ds = format(selectedDate, "yyyy-MM-dd");
 
-    // Priority 1: Check daily override for this specific date
-    const override = dailyOverrides?.find((o: any) => o.override_date === ds);
-    let openTime: string, closeTime: string, lunchStartStr: string | null, lunchEndStr: string | null, isOpen: boolean;
+      // Priority 1: Check daily override for this specific date
+      const override = dailyOverrides?.find((o: any) => o?.override_date === ds);
+      let openTime: string | undefined;
+      let closeTime: string | undefined;
+      let lunchStartStr: string | null = null;
+      let lunchEndStr: string | null = null;
+      let isOpen = false;
 
-    if (override) {
-      isOpen = override.is_open;
-      openTime = override.open_time;
-      closeTime = override.close_time;
-      lunchStartStr = override.lunch_start;
-      lunchEndStr = override.lunch_end;
-    } else {
-      // Priority 2: Use weekly schedule config
-      const config = schedule.find((c) => c.day_of_week === dow);
-      if (!config || !config.is_open) return [];
-      isOpen = config.is_open;
-      openTime = config.open_time;
-      closeTime = config.close_time;
-      lunchStartStr = config.lunch_start;
-      lunchEndStr = config.lunch_end;
-    }
-
-    if (!isOpen) return [];
-
-    const [oh, om] = openTime.split(":").map(Number);
-    const [ch, cm] = closeTime.split(":").map(Number);
-    const openMin = oh * 60 + om;
-    const closeMin = ch * 60 + cm;
-
-    const lunchStart = lunchStartStr ? (() => { const [h, m] = lunchStartStr!.split(":").map(Number); return h * 60 + m; })() : null;
-    const lunchEnd = lunchEndStr ? (() => { const [h, m] = lunchEndStr!.split(":").map(Number); return h * 60 + m; })() : null;
-
-    // Use 5-min granularity to support 10-min services precisely
-    const slotStep = 5;
-
-    const now = new Date();
-    // ds already defined above from selectedDate
-    const todayStr = format(now, "yyyy-MM-dd");
-    const nowMin = now.getHours() * 60 + now.getMinutes();
-
-    // Collect occupied intervals from existing appointments
-    const occupiedIntervals = (dayAppointments || [])
-      .filter((a) => a.status !== "cancelado")
-      .map((a) => {
-        const [ah, am] = a.appointment_time.split(":").map(Number);
-        const aStart = ah * 60 + am;
-        const aDuration = a.total_duration || 30;
-        return { start: aStart, end: aStart + aDuration };
-      });
-
-    const slots: SlotInfo[] = [];
-    for (let m = openMin; m + totalDuration <= closeMin; m += slotStep) {
-      const hh = String(Math.floor(m / 60)).padStart(2, "0");
-      const mm = String(m % 60).padStart(2, "0");
-      const time = `${hh}:${mm}`;
-
-      // Past time check
-      if (ds === todayStr && m <= nowMin) {
-        slots.push({ time, available: false, reason: "past" });
-        continue;
+      if (override) {
+        isOpen = override?.is_open ?? false;
+        openTime = override?.open_time;
+        closeTime = override?.close_time;
+        lunchStartStr = override?.lunch_start ?? null;
+        lunchEndStr = override?.lunch_end ?? null;
+      } else {
+        const config = schedule?.find((c) => c?.day_of_week === dow);
+        if (!config?.is_open) return [];
+        isOpen = config.is_open;
+        openTime = config.open_time;
+        closeTime = config.close_time;
+        lunchStartStr = config?.lunch_start ?? null;
+        lunchEndStr = config?.lunch_end ?? null;
       }
 
-      // Lunch overlap
-      if (lunchStart !== null && lunchEnd !== null) {
-        if (m < lunchEnd && m + totalDuration > lunchStart) {
-          slots.push({ time, available: false, reason: "lunch" });
+      if (!isOpen || !openTime || !closeTime) return [];
+
+      const [oh, om] = openTime.split(":").map(Number);
+      const [ch, cm] = closeTime.split(":").map(Number);
+      if (isNaN(oh) || isNaN(om) || isNaN(ch) || isNaN(cm)) {
+        console.error("[generateSlots] Invalid time values:", { openTime, closeTime });
+        return [];
+      }
+      const openMin = oh * 60 + om;
+      const closeMin = ch * 60 + cm;
+
+      const lunchStart = lunchStartStr ? (() => { const parts = lunchStartStr!.split(":").map(Number); return !isNaN(parts[0]) && !isNaN(parts[1]) ? parts[0] * 60 + parts[1] : null; })() : null;
+      const lunchEnd = lunchEndStr ? (() => { const parts = lunchEndStr!.split(":").map(Number); return !isNaN(parts[0]) && !isNaN(parts[1]) ? parts[0] * 60 + parts[1] : null; })() : null;
+
+      const slotStep = 5;
+      const now = new Date();
+      const todayStr = format(now, "yyyy-MM-dd");
+      const nowMin = now.getHours() * 60 + now.getMinutes();
+
+      const occupiedIntervals = (dayAppointments || [])
+        .filter((a) => a?.status !== "cancelado")
+        .map((a) => {
+          const parts = a?.appointment_time?.split(":").map(Number) || [0, 0];
+          const aStart = (parts[0] || 0) * 60 + (parts[1] || 0);
+          const aDuration = a?.total_duration || 30;
+          return { start: aStart, end: aStart + aDuration };
+        });
+
+      const slots: SlotInfo[] = [];
+      for (let m = openMin; m + totalDuration <= closeMin; m += slotStep) {
+        const hh = String(Math.floor(m / 60)).padStart(2, "0");
+        const mm = String(m % 60).padStart(2, "0");
+        const time = `${hh}:${mm}`;
+
+        if (ds === todayStr && m <= nowMin) {
+          slots.push({ time, available: false, reason: "past" });
           continue;
         }
-      }
 
-      // Blocked slot
-      const isBlocked = blocked?.some(
-        (b) => b.blocked_date === ds && (b.all_day || b.blocked_time === time + ":00")
-      );
-      if (isBlocked) {
-        slots.push({ time, available: false, reason: "blocked" });
-        continue;
-      }
+        if (lunchStart !== null && lunchEnd !== null) {
+          if (m < lunchEnd && m + totalDuration > lunchStart) {
+            slots.push({ time, available: false, reason: "lunch" });
+            continue;
+          }
+        }
 
-      // Overlap with existing appointments - exact duration, no extra buffer unless configured
-      const newEnd = m + totalDuration;
-      const isOccupied = occupiedIntervals.some((occ) => {
-        return m < occ.end && newEnd > occ.start;
-      });
-      if (isOccupied) {
-        slots.push({ time, available: false, reason: "occupied" });
-        continue;
-      }
+        const isBlocked = blocked?.some(
+          (b) => b?.blocked_date === ds && (b?.all_day || b?.blocked_time === time + ":00")
+        );
+        if (isBlocked) {
+          slots.push({ time, available: false, reason: "blocked" });
+          continue;
+        }
 
-      slots.push({ time, available: true });
+        const newEnd = m + totalDuration;
+        const isOccupied = occupiedIntervals.some((occ) => m < occ.end && newEnd > occ.start);
+        if (isOccupied) {
+          slots.push({ time, available: false, reason: "occupied" });
+          continue;
+        }
+
+        slots.push({ time, available: true });
+      }
+      return slots;
+    } catch (e) {
+      console.error("[generateSlots] Unexpected error:", e);
+      return [];
     }
-    return slots;
   };
 
-  const isDateDisabled = (date: Date) => {
-    const today = new Date(new Date().toDateString());
-    const sevenDaysFromNow = addDays(today, 7);
+  const isDateDisabled = (date: Date): boolean => {
+    try {
+      const today = new Date(new Date().toDateString());
+      const sevenDaysFromNow = addDays(today, 7);
+      if (date < today || date > sevenDaysFromNow) return true;
 
-    // Disable if date is in the past or beyond 7 days from today
-    if (date < today || date > sevenDaysFromNow) return true;
+      const dateStr = format(date, "yyyy-MM-dd");
 
-    const dateStr = format(date, "yyyy-MM-dd");
+      if (blocked?.some((b) => b?.blocked_date === dateStr && b?.all_day)) return true;
 
-    // Check if blocked
-    if (blocked?.some((b) => b.blocked_date === dateStr && b.all_day)) return true;
+      const override = dailyOverrides?.find((o: any) => o?.override_date === dateStr);
+      if (override) return !(override?.is_open ?? false);
 
-    // Check daily override first
-    const override = dailyOverrides?.find((o: any) => o.override_date === dateStr);
-    if (override) return !override.is_open;
+      const dow = getDay(date);
+      const config = schedule?.find((c) => c?.day_of_week === dow);
+      if (!config?.is_open) return true;
 
-    // Fall back to weekly schedule
-    const dow = getDay(date);
-    const config = schedule?.find((c) => c.day_of_week === dow);
-    if (!config || !config.is_open) return true;
-
-    return false;
+      return false;
+    } catch (e) {
+      console.error("[isDateDisabled] Error for date:", date, e);
+      return true; // safer to disable than crash
+    }
   };
 
   const handleSubmit = async () => {
     setSaving(true);
     try {
       const dbPaymentMethod = paymentMethod === "pix" ? "Pix" : "Dinheiro";
-
       const { error } = await supabase.from("appointments").insert({
         client_name: clientName,
         client_phone: clientPhone,
@@ -201,12 +212,10 @@ const Agendar = () => {
       });
       if (error) throw error;
 
-      // Redirect to WhatsApp with confirmation message
       const whatsappNumber = settings?.whatsapp || "5571988896715";
       const dateFormatted = selectedDate ? format(selectedDate, "dd/MM/yyyy") : "";
       const servicesList = chosen.map((s) => s.name).join(", ");
       const message = `✅ Agendamento Confirmado!\n\n📍 Barbearia Romel\n👤 Cliente: ${clientName}\n✂️ Serviço: ${servicesList}\n📅 Data: ${dateFormatted} às ${selectedTime}\n💰 Valor: R$ ${totalPrice.toFixed(2)}\n\nPor favor, envie o comprovante do Pix para garantir sua vaga!`;
-
       const waUrl = `https://wa.me/5571988896715?text=${encodeURIComponent(message)}`;
       window.open(waUrl, "_blank", "noopener,noreferrer");
 
@@ -259,6 +268,21 @@ const Agendar = () => {
     if (i > 0) setStep(STEPS[i - 1]);
     else navigate("/");
   };
+
+  // Loading skeleton
+  if (!isDataReady) {
+    return (
+      <div className="dark min-h-screen bg-background text-foreground flex flex-col items-center justify-center gap-4 p-8">
+        <Skeleton className="h-8 w-48" />
+        <Skeleton className="h-4 w-64" />
+        <div className="space-y-3 w-full max-w-md mt-4">
+          <Skeleton className="h-16 w-full rounded-lg" />
+          <Skeleton className="h-16 w-full rounded-lg" />
+          <Skeleton className="h-16 w-full rounded-lg" />
+        </div>
+      </div>
+    );
+  }
 
   return (
     <div className="dark min-h-screen bg-background text-foreground relative">
@@ -345,7 +369,6 @@ const Agendar = () => {
                 </label>
               ))}
 
-              {/* Dynamic total summary */}
               {selectedServices.length > 0 && (
                 <div className="rounded-lg border p-4 mt-4" style={{ borderColor: `${primaryColor}50`, backgroundColor: `${primaryColor}0D` }}>
                   <div className="flex items-center justify-between text-sm">
@@ -363,118 +386,116 @@ const Agendar = () => {
 
           {/* Step: Date */}
           {step === "date" && (
-            <div className="space-y-6 animate-in fade-in slide-in-from-bottom-4 duration-500">
-              <div className="flex flex-col items-center gap-2 mb-2">
-                <div className="flex items-center gap-2 px-3 py-1 rounded-full bg-[#D1B122]/10 border border-[#D1B122]/20">
-                  <span className="text-[10px] font-black text-[#D1B122] uppercase tracking-widest">Atenção</span>
+            <ErrorBoundary fallbackMessage="Erro ao carregar o calendário.">
+              <div className="space-y-6 animate-in fade-in slide-in-from-bottom-4 duration-500">
+                <div className="flex flex-col items-center gap-2 mb-2">
+                  <div className="flex items-center gap-2 px-3 py-1 rounded-full bg-[#D1B122]/10 border border-[#D1B122]/20">
+                    <span className="text-[10px] font-black text-[#D1B122] uppercase tracking-widest">Atenção</span>
+                  </div>
+                  <p className="text-xs font-bold text-white/40 uppercase tracking-tighter">Agenda liberada apenas para os próximos 7 dias</p>
                 </div>
-                <p className="text-xs font-bold text-white/40 uppercase tracking-tighter">Agenda liberada apenas para os próximos 7 dias</p>
+                <Calendar
+                  mode="single"
+                  selected={selectedDate}
+                  onSelect={(date) => {
+                    setSelectedDate(date);
+                    setStep("time");
+                  }}
+                  disabled={isDateDisabled}
+                  fromDate={new Date()}
+                  toDate={addDays(new Date(), 7)}
+                  className="rounded-2xl border border-white/5 bg-black/40 backdrop-blur-xl p-4 shadow-2xl [&_.rdp-day:not([disabled])]:!text-white [&_.rdp-day:not([disabled])]:font-bold [&_.rdp-head_cell]:!text-white/70 [&_.rdp-caption_label]:!text-white [&_.rdp-nav_button]:!text-white"
+                  locale={ptBR}
+                />
               </div>
-              <Calendar
-                mode="single"
-                selected={selectedDate}
-                onSelect={(date) => {
-                  setSelectedDate(date);
-                  setStep("time");
-                }}
-                disabled={isDateDisabled}
-                fromDate={new Date()}
-                toDate={addDays(new Date(), 7)}
-                className="rounded-2xl border border-white/5 bg-black/40 backdrop-blur-xl p-4 shadow-2xl [&_.rdp-day:not([disabled])]:!text-white [&_.rdp-day:not([disabled])]:font-bold [&_.rdp-head_cell]:!text-white/70 [&_.rdp-caption_label]:!text-white [&_.rdp-nav_button]:!text-white"
-                locale={ptBR}
-              />
-            </div>
+            </ErrorBoundary>
           )}
 
           {/* Step: Time - Vertical Timeline */}
           {step === "time" && (
-            <div className="relative">
-              {slots.length === 0 && (
-                <p className="text-center text-muted-foreground py-8">
-                  {selectedDate && format(selectedDate, "yyyy-MM-dd") === format(new Date(), "yyyy-MM-dd")
-                    ? "Não há mais horários disponíveis para hoje"
-                    : "Nenhum horário disponível"}
-                </p>
-              )}
-              {slots.length > 0 && (
-                <div className="relative ml-4">
-                  {/* Vertical line */}
-                  <div className="absolute left-[7px] top-0 bottom-0 w-0.5 bg-border" />
-                  <div className="space-y-0.5">
-                    {slots.map((slot) => {
-                      const isSelected = slot.available && selectedTime === slot.time;
-                      const serviceNames = chosen.map((s) => s.name).join(" + ");
-                      // Compute end time for selected block
-                      const [sh, sm] = slot.time.split(":").map(Number);
-                      const endMinTotal = sh * 60 + sm + totalDuration;
-                      const endH = String(Math.floor(endMinTotal / 60)).padStart(2, "0");
-                      const endM = String(endMinTotal % 60).padStart(2, "0");
-                      const endTime = `${endH}:${endM}`;
-                      // Height proportional to duration for selected block
-                      const blockHeight = Math.max(totalDuration * 2, 52);
+            <ErrorBoundary fallbackMessage="Erro ao carregar os horários.">
+              <div className="relative">
+                {slots.length === 0 && (
+                  <p className="text-center text-muted-foreground py-8">
+                    {selectedDate && format(selectedDate, "yyyy-MM-dd") === format(new Date(), "yyyy-MM-dd")
+                      ? "Não há mais horários disponíveis para hoje"
+                      : "Nenhum horário disponível"}
+                  </p>
+                )}
+                {slots.length > 0 && (
+                  <div className="relative ml-4">
+                    <div className="absolute left-[7px] top-0 bottom-0 w-0.5 bg-border" />
+                    <div className="space-y-0.5">
+                      {slots.map((slot) => {
+                        const isSelected = slot.available && selectedTime === slot.time;
+                        const serviceNames = chosen.map((s) => s.name).join(" + ");
+                        const [sh, sm] = slot.time.split(":").map(Number);
+                        const endMinTotal = sh * 60 + sm + totalDuration;
+                        const endH = String(Math.floor(endMinTotal / 60)).padStart(2, "0");
+                        const endM = String(endMinTotal % 60).padStart(2, "0");
+                        const endTime = `${endH}:${endM}`;
+                        const blockHeight = Math.max(totalDuration * 2, 52);
 
-                      return (
-                        <div key={slot.time} className="relative flex items-start gap-3">
-                          {/* Timeline dot */}
-                          <div
-                            className={cn(
-                              "relative z-10 mt-3 h-3.5 w-3.5 rounded-full border-2 shrink-0 transition-colors",
-                              !slot.available
-                                ? "border-muted-foreground/30 bg-muted/30"
-                                : isSelected
-                                  ? "border-transparent"
-                                  : "border-border bg-background"
-                            )}
-                            style={isSelected ? { borderColor: primaryColor, backgroundColor: primaryColor } : undefined}
-                          />
-
-                          {/* Slot block */}
-                          <button
-                            onClick={() => slot.available && setSelectedTime(slot.time)}
-                            disabled={!slot.available}
-                            className={cn(
-                              "flex-1 rounded-lg border transition-all text-left",
-                              !slot.available
-                                ? "border-border bg-card/20 opacity-40 cursor-not-allowed"
-                                : isSelected
-                                  ? "border-2"
-                                  : "border-border bg-card/60 hover:border-muted-foreground"
-                            )}
-                            style={{
-                              minHeight: isSelected ? `${blockHeight}px` : '36px',
-                              ...(isSelected ? { borderColor: primaryColor, backgroundColor: primaryColor } : {}),
-                            }}
-                          >
-                            <div className="flex flex-col justify-center h-full pl-2 py-1.5">
-                              {isSelected ? (
-                                <>
-                                  <span className="font-bold text-xs" style={{ color: '#000000' }}>{serviceNames}</span>
-                                  <span className="font-bold text-[11px]" style={{ color: '#000000cc' }}>{slot.time} até {endTime}</span>
-                                </>
-                              ) : (
-                                <span className={cn(
-                                  "font-medium text-sm flex items-center gap-1.5",
-                                  !slot.available ? "line-through text-muted-foreground" : ""
-                                )}>
-                                  <Clock className="h-3 w-3 opacity-50" />
-                                  {slot.time}
-                                  {!slot.available && slot.reason === "lunch" && (
-                                    <span className="ml-1 text-xs text-muted-foreground/60">— Pausa / Almoço</span>
-                                  )}
-                                  {!slot.available && slot.reason === "occupied" && (
-                                    <span className="ml-1 text-xs text-muted-foreground/60">Ocupado</span>
-                                  )}
-                                </span>
+                        return (
+                          <div key={slot.time} className="relative flex items-start gap-3">
+                            <div
+                              className={cn(
+                                "relative z-10 mt-3 h-3.5 w-3.5 rounded-full border-2 shrink-0 transition-colors",
+                                !slot.available
+                                  ? "border-muted-foreground/30 bg-muted/30"
+                                  : isSelected
+                                    ? "border-transparent"
+                                    : "border-border bg-background"
                               )}
-                            </div>
-                          </button>
-                        </div>
-                      );
-                    })}
+                              style={isSelected ? { borderColor: primaryColor, backgroundColor: primaryColor } : undefined}
+                            />
+                            <button
+                              onClick={() => slot.available && setSelectedTime(slot.time)}
+                              disabled={!slot.available}
+                              className={cn(
+                                "flex-1 rounded-lg border transition-all text-left",
+                                !slot.available
+                                  ? "border-border bg-card/20 opacity-40 cursor-not-allowed"
+                                  : isSelected
+                                    ? "border-2"
+                                    : "border-border bg-card/60 hover:border-muted-foreground"
+                              )}
+                              style={{
+                                minHeight: isSelected ? `${blockHeight}px` : '36px',
+                                ...(isSelected ? { borderColor: primaryColor, backgroundColor: primaryColor } : {}),
+                              }}
+                            >
+                              <div className="flex flex-col justify-center h-full pl-2 py-1.5">
+                                {isSelected ? (
+                                  <>
+                                    <span className="font-bold text-xs" style={{ color: '#000000' }}>{serviceNames}</span>
+                                    <span className="font-bold text-[11px]" style={{ color: '#000000cc' }}>{slot.time} até {endTime}</span>
+                                  </>
+                                ) : (
+                                  <span className={cn(
+                                    "font-medium text-sm flex items-center gap-1.5",
+                                    !slot.available ? "line-through text-muted-foreground" : ""
+                                  )}>
+                                    <Clock className="h-3 w-3 opacity-50" />
+                                    {slot.time}
+                                    {!slot.available && slot.reason === "lunch" && (
+                                      <span className="ml-1 text-xs text-muted-foreground/60">— Pausa / Almoço</span>
+                                    )}
+                                    {!slot.available && slot.reason === "occupied" && (
+                                      <span className="ml-1 text-xs text-muted-foreground/60">Ocupado</span>
+                                    )}
+                                  </span>
+                                )}
+                              </div>
+                            </button>
+                          </div>
+                        );
+                      })}
+                    </div>
                   </div>
-                </div>
-              )}
-            </div>
+                )}
+              </div>
+            </ErrorBoundary>
           )}
 
           {/* Step: Info */}
@@ -526,7 +547,6 @@ const Agendar = () => {
                     <div className="bg-white p-3 rounded-lg">
                       <QRCodeSVG
                         value={(() => {
-                          // Build dynamic BR Code payload with value
                           const valorStr = totalPrice.toFixed(2);
                           const valorTag = `54${String(valorStr.length).padStart(2, "0")}${valorStr}`;
                           return `00020126440014BR.GOV.BCB.PIX0122romel.cruz@hotmail.com5204000053039865${valorTag}5802BR5925Romel da Cruz Mascarenhas6008SALVADOR62140510iY2ZGjlaHK6304`;
@@ -535,8 +555,6 @@ const Agendar = () => {
                       />
                     </div>
                   </div>
-
-                  {/* Chave Pix visível */}
                   <div className="rounded-lg bg-zinc-800 p-3 flex items-center justify-between gap-2">
                     <span className="text-sm text-zinc-300 truncate">romel.cruz@hotmail.com</span>
                     <button
@@ -577,8 +595,6 @@ const Agendar = () => {
                 <Check className="h-6 w-6" style={{ color: primaryColor }} />
               </div>
               <h2 className="text-xl font-bold" style={{ color: primaryColor }}>Agendado!</h2>
-
-              {/* Summary card */}
               <div className="w-full rounded-lg border border-border bg-card/60 p-5 text-sm text-left space-y-1">
                 <p><span className="text-muted-foreground">Nome:</span> <span className="font-bold">{clientName}</span></p>
                 <p><span className="text-muted-foreground">Serviço:</span> <span className="font-bold">{chosen.map((s) => s.name).join(", ")}</span></p>
@@ -587,8 +603,6 @@ const Agendar = () => {
                 <p><span className="text-muted-foreground">Pagamento:</span> <span className="font-bold">{paymentMethod === "pix" ? "Pix" : "Dinheiro"}</span></p>
                 <p className="font-bold" style={{ color: primaryColor }}>Total: R$ {totalPrice.toFixed(2)}</p>
               </div>
-
-              {/* Rating */}
               <div className="w-full rounded-lg border border-border bg-card/60 p-5 flex flex-col items-center">
                 <p className="font-bold text-lg mb-3" style={{ fontFamily: 'Playfair Display, serif' }}>Avalie sua Experiência</p>
                 <StarRating rating={rating} onRate={handleRate} size={36} />
@@ -596,7 +610,6 @@ const Agendar = () => {
                   <p className="mt-3 font-medium text-center" style={{ color: primaryColor }}>Avaliação recebida! Muito obrigado. ⭐</p>
                 )}
               </div>
-
               <button
                 onClick={() => navigate("/")}
                 className="w-full rounded-lg border border-border bg-card/60 py-3 font-medium hover:bg-card transition-colors"
